@@ -1,1530 +1,1097 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#0b0b0e">
-  <meta name="format-detection" content="telephone=no">
-  <title>公路求生 · 第一章</title>
-  <style>
-    :root {
-      --bg: #0b0b0e;
-      --bg2: #14141a;
-      --paper: #1c1c24;
-      --line: #2a2a33;
-      --text: #efe8dc;
-      --muted: #9a9388;
-      --dim: #6e685e;
-      --red: #d33b3b;
-      --amber: #e2a225;
-      --gold: #c9a227;
-      --teal: #6ee0c6;
-      --fuel: #ff934a;
-      --food: #e0b043;
-      --iron: #b9c3ce;
-      --hp: #e35a5a;
-      --dist: #7ec8e3;
-      --mon: #c084fc;
-      --safe: 0px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", "Source Han Sans SC", system-ui, sans-serif;
-      font-size: 16px;
-      line-height: 1.65;
-    }
-    body {
-      overflow: hidden;
-      background:
-        radial-gradient(ellipse at 50% -10%, #2a1016 0%, transparent 46%),
-        radial-gradient(ellipse at 50% 120%, #16101f 0%, transparent 50%),
-        var(--bg);
-    }
-    #app {
-      height: 100dvh;
-      max-width: 430px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      background: linear-gradient(180deg, rgba(10,10,14,.4), rgba(10,10,14,.85));
-      border-left: 1px solid #1c1c22;
-      border-right: 1px solid #1c1c22;
-    }
-    #app::before {
-      content: "";
-      pointer-events: none;
-      position: absolute;
-      inset: 0;
-      opacity: .04;
-      background-image: repeating-linear-gradient(0deg, #fff 0 1px, transparent 1px 3px);
-      z-index: 8;
-    }
-    #hud {
-      flex-shrink: 0;
-      padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 8px;
-      background: linear-gradient(180deg, #0d0d12 0%, #121218 100%);
-      border-bottom: 1px solid #2a2218;
-      z-index: 5;
-    }
-    #hud.hidden { display: none; }
-    .id-line {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      font-size: 12px;
-      color: var(--muted);
-      letter-spacing: .08em;
-      margin-bottom: 8px;
-    }
-    .id-line .who { color: var(--teal); }
-    .id-line .day { color: var(--amber); }
-    .id-line button {
-      background: #1b1b22;
-      color: var(--muted);
-      border: 1px solid #33333c;
-      border-radius: 999px;
-      padding: 3px 10px;
-      font-size: 12px;
-      font-family: inherit;
-    }
-    .pills {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-      margin-bottom: 6px;
-    }
-    .pill {
-      background: #1a1a21;
-      border: 1px solid #2c2c34;
-      border-radius: 8px;
-      padding: 5px 4px 4px;
-      text-align: center;
-      font-size: 10px;
-      color: var(--muted);
-    }
-    .pill b {
-      display: block;
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-      line-height: 1.3;
-    }
-    .pill[data-res="fuel"] b { color: var(--fuel); }
-    .pill[data-res="food"] b { color: var(--food); }
-    .pill[data-res="iron"] b { color: var(--iron); }
-    .pill[data-res="hp"] b { color: var(--hp); }
-    .pill.flash { animation: flashpill .5s ease; }
-    @keyframes flashpill { 50% { background: #3a2a18; border-color: var(--amber); } }
-    .metrics {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    .metrics .d { color: var(--dist); }
-    .metrics .m { color: var(--mon); }
-    .track {
-      position: relative;
-      height: 14px;
-      border-radius: 999px;
-      background: #1a1a1f;
-      border: 1px solid #2c2c34;
-      overflow: hidden;
-    }
-    .track .lane {
-      position: absolute;
-      left: 8%;
-      right: 8%;
-      top: 50%;
-      height: 2px;
-      background: repeating-linear-gradient(90deg, #c9a227 0 6px, transparent 6px 12px);
-      transform: translateY(-50%);
-      opacity: .7;
-    }
-    .track .ico {
-      position: absolute;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 12px;
-      line-height: 1;
-      transition: left .4s ease;
-    }
-    #stage {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px 18px 12px;
-      -webkit-overflow-scrolling: touch;
-    }
-    .art {
-      text-align: center;
-      margin: 4px 0 14px;
-      min-height: 56px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    .art .emoji { font-size: 42px; line-height: 1; filter: drop-shadow(0 8px 16px rgba(0,0,0,.5)); }
-    .art .caption { font-size: 12px; color: var(--dim); letter-spacing: .2em; }
-    .eye-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; height: 72px; }
-    .wing {
-      width: 38px; height: 18px;
-      background: radial-gradient(circle at 30% 50%, #5a2a2a, #1a0a0a);
-      border-radius: 80% 20% 80% 20%;
-      opacity: .85;
-      animation: flap 2.4s ease-in-out infinite;
-    }
-    .wing.r { border-radius: 20% 80% 20% 80%; animation-delay: .1s; }
-    @keyframes flap { 50% { transform: scaleY(.7) translateY(-2px); } }
-    .eyeball {
-      width: 58px; height: 58px; border-radius: 50%;
-      background: radial-gradient(circle at 35% 30%, #fff6e8, #c9b8a0 46%, #3a2018 100%);
-      box-shadow: 0 0 0 3px #2a1010, 0 0 24px rgba(210,40,40,.35);
-      position: relative;
-      animation: stare 4s ease-in-out infinite;
-    }
-    .iris {
-      width: 26px; height: 26px; border-radius: 50%;
-      background: radial-gradient(circle at 40% 35%, #6ee0c6, #0b4a40 70%);
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    }
-    .pupil {
-      width: 10px; height: 10px; border-radius: 50%; background: #0a0a0c;
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    }
-    @keyframes stare { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
-    .board {
-      width: 100%;
-      background: linear-gradient(180deg, #2a2418, #1a160e);
-      border: 2px solid #6a5428;
-      box-shadow: inset 0 0 0 1px #3a3018, 0 8px 24px rgba(0,0,0,.4);
-      border-radius: 4px;
-      padding: 12px 14px;
-      text-align: left;
-      color: #e8d5a3;
-      font-size: 13px;
-      line-height: 1.7;
-    }
-    .board h3 {
-      text-align: center;
-      color: #f0d48a;
-      letter-spacing: .4em;
-      font-size: 14px;
-      margin-bottom: 8px;
-      font-weight: 700;
-    }
-    .cards {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      width: 100%;
-    }
-    .card {
-      background: #19191f;
-      border: 1px solid #33333c;
-      border-radius: 8px;
-      padding: 8px 8px 7px;
-      text-align: left;
-    }
-    .card .nm { color: var(--amber); font-size: 13px; font-weight: 700; }
-    .card .ds { color: var(--muted); font-size: 11px; margin-top: 2px; }
-    .sys, .memory, .narrative, .loot, .chatbox, .ending { position: relative; }
-    .narrative {
-      font-size: 16px;
-      color: var(--text);
-      margin-bottom: 12px;
-    }
-    .narrative p + p { margin-top: .8em; }
-    .sys {
-      background: rgba(14, 36, 32, .7);
-      border: 1px solid rgba(110, 224, 198, .3);
-      color: var(--teal);
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-size: 14px;
-      margin-bottom: 12px;
-      white-space: pre-wrap;
-    }
-    .sys::before {
-      content: "系统";
-      display: inline-block;
-      font-size: 10px;
-      letter-spacing: .2em;
-      color: #0b0b0e;
-      background: var(--teal);
-      border-radius: 3px;
-      padding: 0 5px;
-      margin-right: 6px;
-      vertical-align: 1px;
-    }
-    .memory {
-      border-left: 3px solid var(--gold);
-      padding: 4px 0 4px 10px;
-      color: #d9c48a;
-      font-size: 14px;
-      font-style: italic;
-      margin: 0 0 12px;
-    }
-    .loot {
-      background: #19191f;
-      border: 1px dashed #5a4a28;
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
-      color: var(--food);
-      font-size: 14px;
-    }
-    .loot strong { color: var(--amber); display: block; margin-bottom: 4px; }
-    .chatbox {
-      background: #12121a;
-      border: 1px solid #2c2c38;
-      border-radius: 10px;
-      margin-bottom: 12px;
-      overflow: hidden;
-    }
-    .chatbox .hd {
-      background: #1a1a24;
-      color: var(--muted);
-      font-size: 11px;
-      letter-spacing: .16em;
-      padding: 6px 10px;
-      border-bottom: 1px solid #2c2c38;
-    }
-    .chatbox .msg { padding: 7px 10px; font-size: 13px; border-top: 1px solid #1c1c24; }
-    .chatbox .msg:first-of-type { border-top: 0; }
-    .chatbox .u { color: var(--amber); font-weight: 700; }
-    .chatbox .u.me { color: var(--teal); }
-    .chatbox .u.sysu { color: var(--red); }
-    .banner {
-      background: linear-gradient(90deg, transparent, rgba(180, 30, 30, .55), transparent);
-      color: #fff2c8;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: .06em;
-      padding: 8px 10px;
-      margin: 0 0 12px;
-      animation: bannerin .6s ease;
-    }
-    @keyframes bannerin { from { opacity: 0; letter-spacing: .3em; } }
-    .ending { text-align: center; }
-    .ending h2 {
-      font-size: 22px;
-      letter-spacing: .2em;
-      color: var(--amber);
-      margin: 8px 0 12px;
-    }
-    .ending .rank {
-      background: #16161c;
-      border: 1px solid #333;
-      border-radius: 10px;
-      padding: 8px 0;
-      margin: 12px 0;
-      text-align: left;
-    }
-    .ending .rank .row {
-      display: flex;
-      justify-content: space-between;
-      padding: 5px 14px;
-      font-size: 14px;
-      color: var(--muted);
-    }
-    .ending .rank .row.me {
-      background: rgba(110, 224, 198, .1);
-      color: var(--teal);
-      font-weight: 700;
-    }
-    .ending .stats { font-size: 13px; color: var(--muted); text-align: left; margin-top: 8px; }
-    #choices {
-      flex-shrink: 0;
-      padding: 8px 16px calc(12px + env(safe-area-inset-bottom, 0px));
-      background: linear-gradient(180deg, transparent, #0c0c10 16px);
-      z-index: 5;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    #choices button, .menu-btn {
-      display: block;
-      width: 100%;
-      min-height: 48px;
-      padding: 10px 14px;
-      font-family: inherit;
-      font-size: 16px;
-      color: var(--text);
-      background: #1c1c24;
-      border: 1px solid #3a3a44;
-      border-radius: 10px;
-      text-align: left;
-      line-height: 1.4;
-    }
-    #choices button:active, .menu-btn:active { transform: scale(.99); background: #26262e; }
-    #choices button.primary, .menu-btn.primary {
-      background: linear-gradient(180deg, #6a2018, #4a120e);
-      border-color: #8a3a28;
-      color: #ffe8d0;
-      text-align: center;
-      letter-spacing: .12em;
-      font-weight: 700;
-    }
-    #choices button.ghost {
-      text-align: center;
-      background: transparent;
-      border-color: #2a2a30;
-      color: var(--muted);
-      min-height: 40px;
-      font-size: 14px;
-    }
-    .hint { font-size: 11px; color: var(--dim); display: block; margin-top: 2px; }
-    #dock {
-      flex-shrink: 0;
-      display: flex;
-      justify-content: center;
-      padding: 0 16px calc(8px + env(safe-area-inset-bottom, 0px));
-    }
-    #hud.hidden + #stage + #choices + #dock { padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
-    #btn-restart {
-      background: none;
-      border: none;
-      color: var(--dim);
-      font-family: inherit;
-      font-size: 12px;
-      padding: 6px 12px 10px;
-      letter-spacing: .16em;
-    }
-    #toast {
-      position: absolute;
-      top: 30%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 20;
-      pointer-events: none;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      align-items: center;
-    }
-    .toast-item {
-      background: rgba(20,16,10,.92);
-      border: 1px solid var(--gold);
-      color: var(--amber);
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 14px;
-      font-weight: 700;
-      animation: pop .9s ease forwards;
-    }
-    .toast-item.neg { border-color: var(--red); color: var(--hp); }
-    @keyframes pop {
-      0% { opacity: 0; transform: translateY(8px); }
-      20% { opacity: 1; transform: translateY(0); }
-      80% { opacity: 1; }
-      100% { opacity: 0; transform: translateY(-10px); }
-    }
-    #modal {
-      position: absolute; inset: 0;
-      background: rgba(0,0,0,.72);
-      z-index: 30;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-    #modal.show { display: flex; }
-    #modal .box {
-      width: 100%;
-      background: #16161c;
-      border: 1px solid #3a3a44;
-      border-radius: 12px;
-      padding: 16px;
-      max-height: 80dvh;
-      overflow: auto;
-    }
-    #modal h3 { color: var(--amber); letter-spacing: .2em; font-size: 14px; margin-bottom: 10px; }
-    #modal .row { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; color: var(--muted); }
-    #modal .row b { color: var(--text); font-weight: 600; }
-    #modal .close {
-      margin-top: 14px;
-      width: 100%;
-      min-height: 44px;
-      font-family: inherit;
-      font-size: 15px;
-      color: var(--text);
-      background: #1c1c24;
-      border: 1px solid #3a3a44;
-      border-radius: 10px;
-    }
-    .title-block { text-align: center; padding: 24px 8px 8px; }
-    .title-block .series { font-size: 12px; color: var(--dim); letter-spacing: .28em; }
-    .title-block h1 {
-      font-size: 28px;
-      letter-spacing: .28em;
-      margin: 10px 0 6px;
-      color: #f3e6c8;
-      text-shadow: 0 0 24px rgba(200,40,40,.35);
-    }
-    .title-block .sub { font-size: 13px; color: var(--muted); letter-spacing: .08em; }
-    .title-block .ch {
-      margin-top: 18px;
-      display: inline-block;
-      border: 1px solid #5a4020;
-      color: var(--amber);
-      font-size: 12px;
-      letter-spacing: .3em;
-      padding: 4px 12px;
-    }
-    .road-deco {
-      width: 100%;
-      height: 36px;
-      margin: 18px 0 8px;
-      background: #1a1a20;
-      border-top: 3px solid #3a3a40;
-      border-bottom: 3px solid #3a3a40;
-      position: relative;
-      overflow: hidden;
-    }
-    .road-deco i {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      height: 3px;
-      transform: translateY(-50%);
-      background: repeating-linear-gradient(90deg, #c9a227 0 18px, transparent 18px 36px);
-      animation: roadmove 1.2s linear infinite;
-    }
-    @keyframes roadmove { to { background-position: 36px 0; } }
-    @media (prefers-reduced-motion: reduce) {
-      * { animation: none !important; transition: none !important; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#140b0d">
+<title>公路求生 · 榜一说他要走到公路尽头</title>
+<style>
+html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#140b0d;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+body{position:fixed;inset:0;color:#f3e6d3;font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC","WenQuanYi Micro Hei",sans-serif}
+#c{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
+.hidden{display:none!important}
+#safe{position:absolute;top:env(safe-area-inset-top);bottom:env(safe-area-inset-bottom);left:0;width:1px;pointer-events:none;visibility:hidden}
+/* 触屏控件 */
+#ctl{position:absolute;inset:0;pointer-events:none}
+#joyBase{position:absolute;width:124px;height:124px;margin:-62px 0 0 -62px;border-radius:50%;background:radial-gradient(circle,rgba(255,200,140,.10),rgba(255,170,90,.18));border:2px solid rgba(255,200,150,.35);box-shadow:0 0 18px rgba(0,0,0,.4) inset;pointer-events:none;transition:opacity .2s}
+#joyKnob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffd9a8,#c9773a);box-shadow:0 3px 8px rgba(0,0,0,.5);opacity:.9}
+.btn{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;font-weight:700;color:#fff3e0;text-shadow:0 1px 2px #000;pointer-events:auto;touch-action:none;border:2px solid rgba(255,220,180,.45);box-shadow:0 4px 12px rgba(0,0,0,.45),inset 0 -4px 10px rgba(0,0,0,.3);font-size:15px;letter-spacing:1px}
+.btn.on{transform:scale(.92);filter:brightness(1.3)}
+#bAtk{width:84px;height:84px;right:calc(20px + env(safe-area-inset-right));bottom:calc(34px + env(safe-area-inset-bottom));background:radial-gradient(circle at 40% 35%,#d4513d,#7a1d14);font-size:17px}
+#bCar{width:64px;height:64px;right:calc(34px + env(safe-area-inset-right));bottom:calc(136px + env(safe-area-inset-bottom));background:radial-gradient(circle at 40% 35%,#3d8fd4,#163f6b);font-size:14px}
+#bAct{width:64px;height:64px;right:calc(116px + env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom));background:radial-gradient(circle at 40% 35%,#d9a23a,#7a5313);font-size:14px}
+#bAct.glow,#bCar.glow{animation:pulse 0.9s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,220,120,.7),0 4px 12px rgba(0,0,0,.45)}50%{box-shadow:0 0 0 10px rgba(255,220,120,0),0 4px 12px rgba(0,0,0,.45)}}
+#bUp{position:absolute;right:calc(14px + env(safe-area-inset-right));bottom:calc(212px + env(safe-area-inset-bottom));padding:9px 14px;border-radius:22px;background:linear-gradient(#5fbf6a,#2c7a36);border:2px solid #b8f5bf;color:#fff;font-weight:700;font-size:14px;pointer-events:auto;box-shadow:0 4px 12px rgba(0,0,0,.5);animation:pulse 1.1s infinite;text-align:center;line-height:1.25}
+#bUp small{display:block;font-size:11px;font-weight:400;opacity:.9}
+body.desk #bUp{bottom:auto;top:calc(150px + env(safe-area-inset-top));cursor:pointer}
+#hint{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(196px + env(safe-area-inset-bottom));max-width:86%;padding:8px 14px;border-radius:12px;background:rgba(20,10,12,.72);border:1px solid rgba(255,190,110,.4);font-size:14px;line-height:1.4;text-align:center;pointer-events:none;white-space:pre-line}
+body.desk #hint{bottom:28px}
+body.touch #hint{bottom:auto;top:calc(196px + env(safe-area-inset-top))}
+/* 选择卡 */
+#choice{position:absolute;left:50%;top:calc(192px + env(safe-area-inset-top));transform:translateX(-50%);width:min(310px,84vw);background:rgba(22,12,14,.9);border:1px solid #c98a4a;border-radius:12px;padding:9px 10px 8px;box-shadow:0 8px 30px rgba(0,0,0,.6);pointer-events:auto}
+#choice .who{font-size:12px;color:#e0a366;margin-bottom:4px}
+#choice .msg{font-size:14px;margin-bottom:8px;line-height:1.45}
+#choice .row{display:flex;gap:8px}
+.cbtn{flex:1;text-align:center;padding:7px 4px;border-radius:10px;background:#7a4a1f;border:1px solid #e3a560;font-weight:700;font-size:14px;cursor:pointer}
+.cbtn small{display:block;font-weight:400;font-size:11px;opacity:.85;margin-top:2px}
+.cbtn.no{background:#3a2a2a;border-color:#7a5a5a}
+.cbtn.dis{opacity:.45}
+#ctimer{height:3px;background:#e3a560;border-radius:2px;margin-top:8px;width:100%}
+/* 覆盖层 */
+.ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:calc(20px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom));box-sizing:border-box;pointer-events:auto;overflow:hidden}
+#title{background:linear-gradient(rgba(20,8,10,.15),rgba(20,8,10,.25) 50%,rgba(15,6,8,.85))}
+#title h1{margin:0;font-size:40px;letter-spacing:6px;color:#ffd7a0;text-shadow:0 0 18px rgba(255,120,40,.7),0 3px 0 #5a1d0c}
+#title h2{margin:8px 0 2px;font-size:17px;font-weight:400;color:#f5c99a;letter-spacing:2px}
+#title .sub{font-size:13px;opacity:.75;margin-bottom:26px}
+.big{display:inline-block;padding:13px 44px;font-size:20px;font-weight:700;border-radius:30px;background:linear-gradient(#e2723a,#9c3415);border:2px solid #ffc48a;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.5),0 0 20px rgba(255,120,40,.4);cursor:pointer;letter-spacing:3px}
+.big:active{transform:scale(.96)}
+.small{margin-top:14px;font-size:13px;opacity:.8}
+.small a{color:#f5c99a}
+#title .spacer{flex:1}
+#rules{background:rgba(12,6,8,.78)}
+.board{width:min(380px,92vw);max-height:100%;overflow:auto;background:linear-gradient(#2a1a14,#1a0f0c);border:2px solid #b8763a;border-radius:10px;padding:16px 16px 14px;box-shadow:0 0 0 4px rgba(184,118,58,.2),0 10px 40px rgba(0,0,0,.7);text-align:left;box-sizing:border-box}
+.board h3{margin:0 0 10px;text-align:center;font-size:24px;letter-spacing:8px;color:#ffcf8a;text-shadow:0 0 10px rgba(255,140,50,.6)}
+.board ol{margin:0 0 10px;padding-left:22px;font-size:14px;line-height:1.65}
+.board .zone{text-align:center;font-size:13px;color:#e8a96a;margin-bottom:10px}
+.board .ops{font-size:13px;line-height:1.6;background:rgba(255,200,140,.07);border-radius:8px;padding:8px 10px;margin-bottom:14px}
+.board .ops b{color:#ffcf8a}
+.board .go{text-align:center}
+#dead{background:radial-gradient(circle,rgba(60,0,0,.55),rgba(10,0,0,.9))}
+#dead h2{margin:0 0 6px;font-size:34px;color:#ff6b5a;letter-spacing:6px;text-shadow:0 0 16px rgba(255,40,20,.7)}
+#dead .why{font-size:15px;opacity:.85;margin-bottom:18px}
+#dead table{border-collapse:collapse;margin:0 auto 18px;font-size:15px;min-width:230px}
+#dead td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.1)}
+#dead td:first-child{opacity:.7;text-align:left}
+#dead td:last-child{text-align:right;font-weight:700;color:#ffd7a0}
+#newrec{color:#7dff9a;font-weight:700;margin-bottom:12px;font-size:16px}
+#lb{width:min(300px,86vw);font-size:13px;margin:0 auto 18px;text-align:left;background:rgba(0,0,0,.35);border-radius:8px;padding:6px 10px;box-sizing:border-box}
+#lb div{display:flex;justify-content:space-between;padding:2px 0}
+#lb .me{color:#ffd27a;font-weight:700}
+</style>
 </head>
 <body>
-  <div id="app">
-    <header id="hud" class="hidden">
-      <div class="id-line">
-        <span class="who">ID：独孤求败</span>
-        <span class="day" id="day-label">第 1 天</span>
-        <button type="button" id="btn-panel">面板</button>
-      </div>
-      <div class="pills">
-        <div class="pill" data-res="fuel">⛽ 燃油<b id="v-fuel">0</b></div>
-        <div class="pill" data-res="food">🍖 食物<b id="v-food">0</b></div>
-        <div class="pill" data-res="iron">🔩 铁块<b id="v-iron">0</b></div>
-        <div class="pill" data-res="hp">❤ 生命<b id="v-hp">100</b></div>
-      </div>
-      <div class="metrics">
-        <span class="d">🛣 已行驶 <b id="v-dist">0</b> 公里</span>
-        <span class="m">👁 怪物距离 <b id="v-gap">80</b> 公里</span>
-      </div>
-      <div class="track" aria-hidden="true">
-        <div class="lane"></div>
-        <span class="ico" id="ico-mon">👾</span>
-        <span class="ico" id="ico-you">🛺</span>
-      </div>
-    </header>
-    <main id="stage"></main>
-    <div id="choices"></div>
-    <div id="dock"><button type="button" id="btn-restart">重新开始</button></div>
-    <div id="toast" aria-live="polite"></div>
-    <div id="modal">
-      <div class="box">
-        <h3>生存者面板</h3>
-        <div id="panel-body"></div>
-        <button type="button" class="close" id="btn-close-panel">关闭</button>
-      </div>
-    </div>
+<canvas id="c"></canvas>
+<div id="safe"></div>
+<div id="ctl" class="hidden">
+  <div id="joyBase"><div id="joyKnob"></div></div>
+  <div class="btn" id="bAtk">攻击</div>
+  <div class="btn" id="bCar">上车</div>
+  <div class="btn" id="bAct">互动</div>
+</div>
+<div id="bUp" class="hidden">升级三轮车<small>-8 铁块</small></div>
+<div id="hint" class="hidden"></div>
+<div id="choice" class="hidden">
+  <div class="who" id="cWho">世界频道</div>
+  <div class="msg" id="cMsg"></div>
+  <div class="row"><div class="cbtn" id="cYes"></div><div class="cbtn no" id="cNo">拒绝</div></div>
+  <div id="ctimer"></div>
+</div>
+<div id="title" class="ov">
+  <div class="spacer"></div>
+  <h1>公路求生</h1>
+  <h2>榜一说他要走到公路尽头</h2>
+  <div class="sub">元初动漫 · 男主版改编 · 可操控试玩版</div>
+  <div><span class="big" id="btnStart">开始</span></div>
+  <div class="small" id="bestTxt"></div>
+  <div class="small"><a href="text.html">旧的文字版第一章</a></div>
+  <div style="height:8vh"></div>
+</div>
+<div id="rules" class="ov hidden">
+  <div class="board">
+    <h3>末路规则</h3>
+    <div class="zone">欢迎来到末路求生 · 当前：E66 分区 · 生存者 李峥（ID 独孤求败）</div>
+    <ol>
+      <li>每人一辆初始载具，油量极少。</li>
+      <li>沿公路向前行驶，路上刷新宝箱。箱中有燃油与物资，亦可能有危险。</li>
+      <li>公路两侧是黑雾，走进去的人不会再出来。</li>
+      <li>后方有食肉怪物追赶。停下太久，就会成为它的食物。</li>
+      <li>游戏中的死亡，就是真正的死亡。</li>
+    </ol>
+    <div class="ops" id="opsTxt"></div>
+    <div class="go"><span class="big" id="btnGo">进入公路</span></div>
   </div>
-  <script>
-(function () {
-  "use strict";
+</div>
+<div id="dead" class="ov hidden">
+  <h2>你死了</h2>
+  <div class="why" id="deadWhy"></div>
+  <div id="newrec" class="hidden">新纪录！</div>
+  <table>
+    <tr><td>行驶距离</td><td id="dDist"></td></tr>
+    <tr><td>分区排名</td><td id="dRank"></td></tr>
+    <tr><td>击杀变异黑蛇</td><td id="dKill"></td></tr>
+    <tr><td>打开宝箱</td><td id="dChest"></td></tr>
+    <tr><td>最佳成绩</td><td id="dBest"></td></tr>
+  </table>
+  <div id="lb"></div>
+  <div><span class="big" id="btnAgain">再来一次</span></div>
+</div>
+<script>
+(function(){
+'use strict';
+var cv=document.getElementById('c'), ctx=cv.getContext('2d');
+var W=0,H=0,DPR=1,ZOOM=1,VW=0,VH=0,SAFE_T=0,SAFE_B=0;
+var M=8;               // 每米 8 个世界单位
+var ROAD=150, FOG=560, WALL=640, CH=800;
+var FONT='"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC","WenQuanYi Micro Hei",sans-serif';
+var isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+var PI=Math.PI, TAU=PI*2;
+function $(id){return document.getElementById(id);}
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function lerp(a,b,t){return a+(b-a)*t;}
+function wrap(a){while(a>PI)a-=TAU;while(a<-PI)a+=TAU;return a;}
+function rnd(a,b){return a+Math.random()*(b-a);}
+function ri(a,b){return Math.floor(rnd(a,b+1));}
+function dist(ax,ay,bx,by){var dx=ax-bx,dy=ay-by;return Math.sqrt(dx*dx+dy*dy);}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function ell(x,y,rx,ry){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,TAU);}
+function circ(x,y,r){ctx.beginPath();ctx.arc(x,y,r,0,TAU);}
 
-  var STORAGE_KEY = "gonglu-ch1-v1";
-  var TEST = /[?&]test=1\b/.test(location.search) || !!window.__GONGLU_TEST;
+// 车辆等级数值
+var LV=[null,
+ {max:240,acc:210,turn:2.7,rate:0.040,armor:1.0,tank:100,ram:95, name:'贴满广告的三轮车'},
+ {max:290,acc:255,turn:2.9,rate:0.032,armor:1.7,tank:125,ram:75, name:'铁皮加固三轮车'},
+ {max:345,acc:305,turn:3.1,rate:0.025,armor:2.6,tank:150,ram:55, name:'装甲战车三轮'}];
+var UPCOST=[0,8,20];
 
-  var VEHICLES = {
-    tri: { id: "tri", name: "广告三轮车", icon: "🛺", baseFuel: 30, kpf: 10, dayKm: 60, comfort: 5 },
-    car: { id: "car", name: "轿车", icon: "🚗", baseFuel: 20, kpf: 6, dayKm: 70, comfort: 8 },
-    rv:  { id: "rv",  name: "房车", icon: "🚐", baseFuel: 18, kpf: 4, dayKm: 55, comfort: 18 },
-    suv: { id: "suv", name: "越野车", icon: "🚙", baseFuel: 20, kpf: 5, dayKm: 80, comfort: 8 }
-  };
+// ---------- 预渲染素材 ----------
+var PAT={}, GLOW={}, FX=null;
+function mkCanvas(w,h){var c=document.createElement('canvas');c.width=w;c.height=h;return c;}
+function buildAssets(){
+  var r=mulberry(42);
+  // 荒野沙土
+  var s=mkCanvas(256,256), g=s.getContext('2d');
+  g.fillStyle='#7d5a3c';g.fillRect(0,0,256,256);
+  for(var i=0;i<2600;i++){var v=r();g.fillStyle=v<.5?'rgba(40,22,10,'+(r()*.18)+')':'rgba(230,170,110,'+(r()*.12)+')';g.fillRect(r()*256,r()*256,1+r()*2.5,1+r()*2.5);}
+  for(i=0;i<40;i++){g.fillStyle='rgba(60,40,25,'+(.2+r()*.3)+')';g.beginPath();g.ellipse(r()*256,r()*256,1.5+r()*3,1+r()*2,r()*3,0,TAU);g.fill();}
+  for(i=0;i<10;i++){g.strokeStyle='rgba(50,30,15,.25)';g.lineWidth=1;g.beginPath();var x=r()*256,y=r()*256;g.moveTo(x,y);for(var k=0;k<4;k++){x+=r()*30-15;y+=r()*30-15;g.lineTo(x,y);}g.stroke();}
+  PAT.sand=ctx.createPattern(s,'repeat');
+  // 沥青
+  var a=mkCanvas(256,256), h=a.getContext('2d');
+  h.fillStyle='#3b3436';h.fillRect(0,0,256,256);
+  for(i=0;i<5000;i++){var w=r();h.fillStyle=w<.5?'rgba(0,0,0,'+(r()*.25)+')':'rgba(255,220,200,'+(r()*.08)+')';h.fillRect(r()*256,r()*256,1+r()*1.5,1+r()*1.5);}
+  for(i=0;i<6;i++){h.fillStyle='rgba(20,15,18,.18)';h.beginPath();h.ellipse(r()*256,r()*256,10+r()*30,6+r()*20,r()*3,0,TAU);h.fill();}
+  PAT.asphalt=ctx.createPattern(a,'repeat');
+  // 发光
+  function glow(name,col,sz){var c=mkCanvas(sz,sz),q=c.getContext('2d');var gr=q.createRadialGradient(sz/2,sz/2,0,sz/2,sz/2,sz/2);gr.addColorStop(0,col.replace('A','1'));gr.addColorStop(.25,col.replace('A','.55'));gr.addColorStop(1,col.replace('A','0'));q.fillStyle=gr;q.fillRect(0,0,sz,sz);GLOW[name]=c;}
+  glow('red','rgba(255,40,30,A)',64);glow('orange','rgba(255,160,60,A)',64);glow('white','rgba(255,240,200,A)',64);glow('gold','rgba(255,210,90,A)',64);glow('eye','rgba(255,60,40,A)',32);glow('green','rgba(120,255,140,A)',64);
+  // 车灯光锥
+  var cone=mkCanvas(128,256),cq=cone.getContext('2d');
+  var cg=cq.createLinearGradient(0,256,0,0);cg.addColorStop(0,'rgba(255,230,170,.45)');cg.addColorStop(1,'rgba(255,230,170,0)');
+  cq.fillStyle=cg;cq.beginPath();cq.moveTo(54,256);cq.lineTo(74,256);cq.lineTo(128,0);cq.lineTo(0,0);cq.closePath();cq.fill();
+  GLOW.cone=cone;
+}
+function buildFX(){
+  var w=Math.max(2,Math.round(W/2)),h=Math.max(2,Math.round(H/2));
+  FX=mkCanvas(w,h);var g=FX.getContext('2d');
+  var gr=g.createLinearGradient(0,0,0,h);
+  gr.addColorStop(0,'rgba(255,120,40,0.20)');gr.addColorStop(.45,'rgba(255,90,60,0.06)');gr.addColorStop(1,'rgba(70,20,80,0.28)');
+  g.fillStyle=gr;g.fillRect(0,0,w,h);
+  var rg=g.createRadialGradient(w/2,h*0.45,Math.min(w,h)*0.35,w/2,h*0.5,Math.max(w,h)*0.75);
+  rg.addColorStop(0,'rgba(0,0,0,0)');rg.addColorStop(1,'rgba(10,0,8,0.62)');
+  g.fillStyle=rg;g.fillRect(0,0,w,h);
+}
+function resize(){
+  W=window.innerWidth;H=window.innerHeight;
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+  ZOOM=W<H? W/500 : Math.min(W/620,H/720);
+  ZOOM=clamp(ZOOM,0.55,1.6);
+  VW=W/ZOOM;VH=H/ZOOM;
+  var sf=$('safe');SAFE_T=sf.offsetTop||0;SAFE_B=Math.max(0,H-(sf.offsetTop+sf.offsetHeight))||0;
+  buildFX();
+}
+// ---------- 游戏状态 ----------
+var G=null, BEST={dist:0,rank:1000};
+try{var bs=JSON.parse(localStorage.getItem('gonglu_best')||'null');if(bs&&bs.dist>=0)BEST=bs;}catch(e){}
+var SEED=0;
+var NAMES=['路人甲','幸存者0317','夜车','奶茶续命','老王开车','小雨点','不想上班','东北虎','钢铁直男','一路向北','佛系求生','柠檬精','暴躁老哥','睡不醒','秋名山车神','咸鱼翻身','阿杰','李大胆','飞天小猪','今天也要活着'];
+var CHAT_POOL=[
+ ['路人甲','这游戏怎么退出！！我要回家！'],['小雨点','我开出来一辆婴儿车，你们呢？'],['一百万先生','等出去了我给一百万，谁现在把油让给我。'],
+ ['眼镜男','先别信许诺。面板都还没看明白。'],['奶茶续命','@独孤求败 给点油'],['钢铁直男','有人知道铁块怎么用吗？'],['夜车','后面那是什么东西……好多眼睛'],
+ ['不想上班','我的车没油了，谁来救救我'],['暴躁老哥','宝箱里开出一条蛇！！'],['眼镜男','铁块能升级载具，面板里写了'],['阿杰','独孤求败是谁？跑这么快'],
+ ['佛系求生','卖自热米饭，换燃油，私聊'],['柠檬精','天快黑了，大家别离车太远'],['东北虎','房车那边打起来了'],['抱泰迪的女人','有人看到一只白色泰迪吗'],
+ ['秋名山车神','三轮车能跑这么快？'],['咸鱼翻身','黑雾里有声音，千万别靠近'],['今天也要活着','路边的废车别撞，掉血'],['李大胆','前面有废车堵路，绕边上走'],
+ ['一百万先生','两百万！谁给我十个燃油！'],['睡不醒','保护期结束了吗？'],['飞天小猪','开到一个空箱子，系统耍我']];
 
-  function defaultState() {
-    return {
-      scene: "title",
-      day: 1,
-      fuel: 0,
-      food: 0,
-      iron: 0,
-      hp: 100,
-      distance: 0,
-      monsterGap: 80,
-      bonusFuel: 0,
-      vehicle: null,
-      vehicleLevel: 1,
-      inventory: ["菜刀"],
-      flags: {},
-      entered: {},
-      pack: null,
-      dead: null
-    };
+function newGame(){
+  SEED=(Math.random()*1e9)|0;
+  G={state:'play',t:0,ht:0,
+    player:{x:40,y:-70,face:0,hp:100,food:4,foodCap:6,iron:0,fuel:55,inCar:false,walk:0,moving:false,swing:-1,atkCd:0,hurtT:0,bag:false},
+    car:{x:238,y:-250,a:-0.18,vx:0,vy:0,spd:0,lvl:1,lost:false,brake:false,thr:0,ads:mkAds(1)},
+    horde:{y:1100,started:false},
+    chunks:{},chests:[],snakes:[],wrecks:[],npcs:[],people:[],parts:[],floats:[],chat:[],banners:[],
+    cam:{x:40,y:-260,shake:0},
+    distM:0,lastMile:0,kills:0,chestsOpened:0,firstKill:false,firstChest:true,alive:1000,
+    nextChat:3,nextNpc:22,npcTurn:0,nextDeath:9,foodT:0,fogWarn:0,
+    tut:0,tutFlags:{},hintT:0,hintTxt:'',reason:'',dyingT:0,
+    choice:null,flash:0,lastHurtSrc:''};
+  setupStart();
+  pushChat('系统','末路求生开启。E66 分区，生存者 1000 人。',1);
+}
+function mkAds(seed){var r=mulberry(seed*99+7),a=[],cols=['#efe2b8','#f4a261','#e9c46a','#f1f1e6','#e76f51','#a8dadc','#ffd6e0'];
+  for(var i=0;i<11;i++)a.push({x:-15+r()*26,y:-2+r()*28,w:5+r()*7,h:4+r()*6,r:(r()-.5)*.5,c:cols[(r()*cols.length)|0]});return a;}
+
+function setupStart(){
+  // 开局：路边停着几辆载具和人群（漫剧开场选车的场景）
+  var P=G.people;
+  P.push({x:-215,y:-178,face:1.9,name:'保安',silent:true,shirt:'#2e3a55',pants:'#1d2333',hair:'#111',skin:'#d9a77d',cap:'#1d2740',baton:true});
+  P.push({x:-170,y:-330,face:1.2,name:'矮胖老板',silent:true,shirt:'#c9b28a',pants:'#3a3028',hair:'#222',skin:'#e3b48c',chubby:true});
+  P.push({x:95,y:-360,face:-0.4,name:'眼镜男',shirt:'#56707a',pants:'#2b2b33',hair:'#1a1a1a',skin:'#e6bc95',glasses:true});
+  P.push({x:-95,y:-40,face:0.8,name:'抱泰迪的女人',shirt:'#b8556b',pants:'#2d2230',hair:'#3b1f14',skin:'#f0c6a0',dog:true});
+  G.wrecks.push({x:-270,y:-205,w:62,h:140,type:'rv',col:'#e8dfcc',parked:true,ci:0});
+  G.wrecks.push({x:-270,y:-370,w:48,h:92,type:'suv',col:'#3c4a3a',parked:true,ci:0});
+  G.wrecks.push({x:-265,y:-500,w:42,h:80,type:'sedan',col:'#8a2f2f',parked:true,ci:0});
+  // 第一个宝箱保证在三轮车前面
+  G.chests.push({x:60,y:-640,open:false,ci:0,ambush:false,t:0});
+  G.chests.push({x:-230,y:-760,open:false,ci:0,ambush:false,t:0});
+}
+
+function genChunk(i){
+  if(G.chunks[i])return;
+  var r=mulberry(SEED+i*7919), ch={i:i,top:-(i+1)*CH,bot:-i*CH,dec:[],trees:[],rocks:[]};
+  G.chunks[i]=ch;
+  var y0=ch.top,y1=ch.bot,k,n;
+  function ry(){return y0+r()*CH;}
+  function side(a,b){return (r()<.5?-1:1)*(a+r()*(b-a));}
+  // 路面裂缝 / 油渍 / 刹车痕
+  n=6+((r()*6)|0);
+  for(k=0;k<n;k++){var t=r(),x=(r()*2-1)*(ROAD-10),y=ry();
+    if(t<.55){var pts=[x,y],cx=x,cy=y;for(var j=0;j<4;j++){cx+=r()*24-12;cy+=r()*24-12;pts.push(cx,cy);}ch.dec.push({k:'crack',pts:pts});}
+    else if(t<.8)ch.dec.push({k:'stain',x:x,y:y,rx:8+r()*22,ry:5+r()*14,a:r()*3});
+    else ch.dec.push({k:'skid',x:x,y:y,len:60+r()*120,curve:(r()-.5)*40});}
+  // 荒野：枯树、石头、灌木、骨头
+  n=3+((r()*5)|0);
+  for(k=0;k<n;k++)ch.trees.push({x:side(200,FOG-20),y:ry(),s:.8+r()*.7,a:r()*TAU,br:5+((r()*3)|0)});
+  n=4+((r()*5)|0);
+  for(k=0;k<n;k++){var big=r()<.5,rk={x:side(ROAD+30,FOG),y:ry(),s:big?14+r()*12:5+r()*6,pts:[]};for(j=0;j<7;j++){var aa=j/7*TAU,rad=rk.s*(.75+r()*.35);rk.pts.push(Math.cos(aa)*rad,Math.sin(aa)*rad*.8);}rk.solid=big;ch.rocks.push(rk);}
+  n=7+((r()*8)|0);
+  for(k=0;k<n;k++)ch.dec.push({k:'bush',x:side(ROAD+12,FOG+10),y:ry(),s:6+r()*9,c:r()<.5?'#6b5a2a':'#7a6a36'});
+  n=(r()*3)|0;for(k=0;k<n;k++)ch.dec.push({k:'bone',x:side(ROAD+20,FOG-30),y:ry(),a:r()*TAU});
+  if(r()<.22)ch.dec.push({k:'sign',x:(r()<.5?-1:1)*(ROAD+26),y:ry(),txt:['末路 E66','前方 ∞ 公里','禁止回头','补给？','救命'][(r()*5)|0]});
+  if(i<=0)return;
+  // 废弃车辆
+  var types=['sedan','sedan','suv','truck','bus','sedan'],cols=['#6d4b3a','#5b5f63','#7a3b2a','#3d4f5a','#8a7a5a','#4a3a3a'];
+  n=(r()<.75?1:0)+(r()<.45?1:0)+(i>30&&r()<.3?1:0);
+  for(k=0;k<n;k++){var tp=types[(r()*types.length)|0],dims={sedan:[42,80],suv:[48,92],truck:[56,150],bus:[60,170]}[tp];
+    var onRoad=r()<.6,wx=onRoad?(r()*2-1)*(ROAD-40):side(ROAD+60,FOG-60),wy=ry(),rot=r()<.25;
+    var w=rot?dims[1]:dims[0],h=rot?dims[0]:dims[1],ok=true;
+    for(j=0;j<G.wrecks.length;j++){var o=G.wrecks[j];if(Math.abs(o.x-wx)<(o.w+w)/2+60&&Math.abs(o.y-wy)<(o.h+h)/2+60)ok=false;}
+    if(ok)G.wrecks.push({x:wx,y:wy,w:w,h:h,type:tp,rot:rot,flip:r()<.5,col:cols[(r()*cols.length)|0],burnt:r()<.3,seed:(r()*1e6)|0,jit:(r()-.5)*.12,ci:i});}
+  // 宝箱
+  n=(r()<.6?1:0)+(r()<.25?1:0);
+  for(k=0;k<n;k++){var cx2=r()<.5?(r()*2-1)*(ROAD-20):side(ROAD+20,430);
+    G.chests.push({x:cx2,y:ry(),open:false,ci:i,ambush:r()<.22,t:0});}
+  // 变异黑蛇
+  if(i>=3){var p1=Math.min(.8,.3+i*.008),p2=Math.min(.45,i*.005);
+    n=(r()<p1?1:0)+(r()<p2?1:0);
+    for(k=0;k<n;k++){var sx=r()<.75?side(ROAD+10,420):(r()*2-1)*(ROAD-20);spawnSnake(sx,ry(),i);}}
+}
+function spawnSnake(x,y,ci){
+  var s={x:x,y:y,hx:x,hy:y,a:Math.random()*TAU,hp:32,st:'idle',t:0,cd:0,lunge:0,hurt:0,dead:0,trail:[],ci:ci,ph:Math.random()*TAU};
+  for(var k=0;k<14;k++){var aa=k*.75,rad=4+k*1.3;s.trail.push({x:x+Math.cos(aa)*rad,y:y+Math.sin(aa)*rad});}
+  G.snakes.push(s);return s;
+}
+function manageChunks(){
+  var py=G.cam.y, lo=Math.floor(-(py+VH/2+400)/CH), hi=Math.floor(-(py-VH/2-900)/CH);
+  for(var i=lo;i<=hi;i++)genChunk(i);
+  var limit=Math.max(G.horde.y, py)+VH;   // 已经远远在后方的东西清掉
+  for(var key in G.chunks){if(G.chunks[key].top>limit+400)delete G.chunks[key];}
+  function keep(o){return o.y<limit+600;}
+  G.chests=G.chests.filter(keep);G.snakes=G.snakes.filter(keep);G.wrecks=G.wrecks.filter(keep);G.people=G.people.filter(keep);
+}
+// ---------- 输入 ----------
+var KEYS={}, JOY={id:null,x:0,y:0,m:0,bx:0,by:0}, ATK_HELD=false;
+function getInput(){
+  var x=0,y=0;
+  if(KEYS.KeyA||KEYS.ArrowLeft)x-=1;if(KEYS.KeyD||KEYS.ArrowRight)x+=1;
+  if(KEYS.KeyW||KEYS.ArrowUp)y-=1;if(KEYS.KeyS||KEYS.ArrowDown)y+=1;
+  if(x||y){var l=Math.sqrt(x*x+y*y);return {x:x/l,y:y/l,m:1};}
+  if(JOY.m>0.05)return {x:JOY.x/JOY.m,y:JOY.y/JOY.m,m:JOY.m};
+  return {x:0,y:0,m:0};
+}
+
+// ---------- 辅助 ----------
+function pos(){var p=G.player;return p.inCar?{x:G.car.x,y:G.car.y}:{x:p.x,y:p.y};}
+function pushChat(who,txt,sys){G.chat.push({who:who,txt:txt,t:G.t,sys:sys||0});if(G.chat.length>30)G.chat.shift();}
+function banner(txt,kind,dur){G.banners.push({txt:txt,kind:kind||'sys',t:0,dur:dur||3.2});if(G.banners.length>4)G.banners.splice(1,1);}
+function floatTxt(x,y,txt,col){G.floats.push({x:x,y:y,txt:txt,col:col||'#ffe08a',t:0});}
+function shake(v){G.cam.shake=Math.max(G.cam.shake,v);}
+function part(x,y,vx,vy,life,size,col,type){if(G.parts.length>360)G.parts.shift();G.parts.push({x:x,y:y,vx:vx,vy:vy,life:life,max:life,size:size,col:col,type:type||0});}
+function hurt(n,src){var p=G.player;if(G.state!=='play')return;p.hp-=n;p.hurtT=.35;G.flash=Math.max(G.flash,Math.min(.6,n/25));G.lastHurtSrc=src;if(n>=4)shake(Math.min(14,4+n*.5));if(p.hp<=0){p.hp=0;die(src);}}
+function rank(){var d=G.distM;return Math.max(1,Math.min(G.alive,Math.round(G.alive*Math.exp(-d/4000))));}
+function hint(txt,dur){G.hintTxt=txt;G.hintT=dur||5;}
+
+// ---------- 碰撞 ----------
+function solids(x,y,range,fn){
+  var i,o;
+  for(i=0;i<G.wrecks.length;i++){o=G.wrecks[i];if(Math.abs(o.y-y)<range+o.h/2&&Math.abs(o.x-x)<range+o.w/2)fn('box',o);}
+  for(var key in G.chunks){var ch=G.chunks[key];if(ch.top>y+range||ch.bot<y-range)continue;
+    for(i=0;i<ch.trees.length;i++){o=ch.trees[i];if(Math.abs(o.y-y)<range)fn('circ',{x:o.x,y:o.y,r:7*o.s});}
+    for(i=0;i<ch.rocks.length;i++){o=ch.rocks[i];if(o.solid&&Math.abs(o.y-y)<range)fn('circ',{x:o.x,y:o.y,r:o.s*.85});}}
+  // 电线杆
+  var k0=Math.floor((y-range)/320),k1=Math.floor((y+range)/320);
+  for(var k=k0;k<=k1;k++)fn('circ',{x:-ROAD-62,y:k*320,r:6});
+}
+// 圆与障碍物碰撞，返回冲击法线速度
+function collide(ent,rad,vel){
+  var hit=0;
+  solids(ent.x,ent.y,rad+90,function(kind,o){
+    var nx,ny,d,pen;
+    if(kind==='box'){var hx=o.w/2,hy=o.h/2,cx=clamp(ent.x,o.x-hx,o.x+hx),cy=clamp(ent.y,o.y-hy,o.y+hy);
+      nx=ent.x-cx;ny=ent.y-cy;d=Math.sqrt(nx*nx+ny*ny);
+      if(d===0){var dx=ent.x-o.x,dy=ent.y-o.y;if(Math.abs(dx)/hx>Math.abs(dy)/hy){nx=dx>0?1:-1;ny=0;pen=hx-Math.abs(dx)+rad;}else{nx=0;ny=dy>0?1:-1;pen=hy-Math.abs(dy)+rad;}}
+      else{if(d>=rad)return;pen=rad-d;nx/=d;ny/=d;}}
+    else{nx=ent.x-o.x;ny=ent.y-o.y;d=Math.sqrt(nx*nx+ny*ny)||0.001;if(d>=rad+o.r)return;pen=rad+o.r-d;nx/=d;ny/=d;}
+    ent.x+=nx*pen;ent.y+=ny*pen;
+    if(vel){var vn=vel.vx*nx+vel.vy*ny;if(vn<0){vel.vx-=nx*vn*1.35;vel.vy-=ny*vn*1.35;hit=Math.max(hit,-vn);}}
+  });
+  return hit;
+}
+
+// ---------- 动作 ----------
+function nearChest(){var p=pos(),best=null,bd=48;for(var i=0;i<G.chests.length;i++){var c=G.chests[i];if(c.open)continue;var d=dist(p.x,p.y,c.x,c.y);if(d<bd){bd=d;best=c;}}return best;}
+function nearCar(){var p=G.player;return !G.car.lost&&dist(p.x,p.y,G.car.x,G.car.y)<58;}
+function toggleCar(){
+  var p=G.player,c=G.car;if(G.state!=='play')return;
+  if(p.inCar){
+    var rx=Math.cos(c.a),ry=Math.sin(c.a);p.x=c.x+rx*32;p.y=c.y+ry*32;p.inCar=false;p.face=c.a;
+    collide(p,9,null);
+    if(!G.tutFlags.exit){G.tutFlags.exit=1;}
+  }else if(nearCar()){
+    p.inCar=true;
+    if(G.tut===0){G.tut=1;hint(isTouch?'推动左边摇杆转向和加速，一路向前！\n后方的食肉怪物潮已经苏醒。':'W/↑ 加速，方向键转向，一路向前！\n后方的食肉怪物潮已经苏醒。',6);}
+    for(var k=0;k<8;k++)part(c.x+rnd(-14,14),c.y+rnd(10,30),rnd(-30,30),rnd(10,40),.8,6,'rgba(120,110,100,',1);
   }
-
-  var state = defaultState();
-  var toastTimer = 0;
-
-  var els = {
-    hud: document.getElementById("hud"),
-    stage: document.getElementById("stage"),
-    choices: document.getElementById("choices"),
-    day: document.getElementById("day-label"),
-    fuel: document.getElementById("v-fuel"),
-    food: document.getElementById("v-food"),
-    iron: document.getElementById("v-iron"),
-    hp: document.getElementById("v-hp"),
-    dist: document.getElementById("v-dist"),
-    gap: document.getElementById("v-gap"),
-    icoYou: document.getElementById("ico-you"),
-    icoMon: document.getElementById("ico-mon"),
-    toast: document.getElementById("toast"),
-    modal: document.getElementById("modal"),
-    panel: document.getElementById("panel-body"),
-    restart: document.getElementById("btn-restart"),
-    btnPanel: document.getElementById("btn-panel"),
-    btnClose: document.getElementById("btn-close-panel")
-  };
-
-  function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
-
-  function veh() { return state.vehicle ? VEHICLES[state.vehicle] : null; }
-
-  function kpf() {
-    var v = veh();
-    if (!v) return 10;
-    var r = v.kpf;
-    if (state.vehicleLevel >= 2) r = +(r * 1.4).toFixed(1);
-    return r;
+}
+function interact(){
+  if(G.state!=='play')return;var p=G.player;
+  if(!p.inCar){var ch=nearChest();if(ch){openChest(ch);return;}}
+  toggleCar();
+}
+var LOOT=[['fuel',40],['iron',26],['bun',12],['rice',10],['pot',6],['med',7]];
+function rollLoot(){var tot=0,i;for(i=0;i<LOOT.length;i++)tot+=LOOT[i][1];var v=Math.random()*tot;for(i=0;i<LOOT.length;i++){v-=LOOT[i][1];if(v<0)return LOOT[i][0];}return 'fuel';}
+function giveLoot(kind,x,y,out){
+  var p=G.player,tank=LV[G.car.lvl].tank,n;
+  switch(kind){
+  case 'fuel':n=ri(12,22);p.fuel=Math.min(tank,p.fuel+n);out.push('燃油 ×'+n);floatTxt(x,y,'+'+n+' 燃油','#ffb347');break;
+  case 'iron':n=ri(2,4);p.iron+=n;out.push('铁块 ×'+n);floatTxt(x,y,'+'+n+' 铁块','#c9d6e3');break;
+  case 'bun':n=Math.min(1,p.foodCap-p.food);p.food+=n;out.push('鲜肉包'+(n?'':'（背包满）'));floatTxt(x,y,'鲜肉包','#ffe08a');break;
+  case 'rice':n=Math.min(2,p.foodCap-p.food);p.food+=n;out.push('自热米饭'+(n?'':'（背包满）'));floatTxt(x,y,'自热米饭','#ffe08a');break;
+  case 'pot':n=Math.min(3,p.foodCap-p.food);p.food+=n;p.hp=Math.min(100,p.hp+10);out.push('自热小火锅');floatTxt(x,y,'自热小火锅','#ff8a5a');break;
+  case 'med':p.hp=Math.min(100,p.hp+30);out.push('急救包 生命+30');floatTxt(x,y,'+30 生命','#7dff9a');break;
+  case 'bag':p.bag=true;p.foodCap=15;out.push('空间背包');floatTxt(x,y-14,'空间背包！','#9fe3ff');break;
   }
+}
+function openChest(ch){
+  ch.open=true;ch.t=0;G.chestsOpened++;
+  var out=[];
+  if(G.firstChest){G.firstChest=false;giveLoot('bag',ch.x,ch.y,out);giveLoot('fuel',ch.x,ch.y-16,out);giveLoot('bun',ch.x,ch.y-30,out);}
+  else{giveLoot(rollLoot(),ch.x,ch.y,out);if(Math.random()<.45)giveLoot(rollLoot(),ch.x,ch.y-16,out);}
+  banner('打开宝箱：'+out.join('、'),'loot',2.6);
+  for(var k=0;k<18;k++){var a=rnd(0,TAU),s=rnd(40,120);part(ch.x,ch.y,Math.cos(a)*s,Math.sin(a)*s,.7,3,'rgba(255,210,90,',2);}
+  if(ch.ambush){var s2=spawnSnake(ch.x+rnd(-30,30),ch.y-30,ch.ci);s2.st='chase';banner('箱子后面窜出一条变异黑蛇！','warn',2);shake(6);}
+  if(!G.tutFlags.chest){G.tutFlags.chest=1;hint('宝箱里有燃油、铁块和食物。\n铁块够了可以升级三轮车。',4);}
+}
+function attack(){
+  var p=G.player;if(G.state!=='play'||p.atkCd>0)return;
+  p.atkCd=.36;p.swing=0;
+  var o=pos(),fa=p.inCar?null:p.face,range=p.inCar?66:56,hit=false;
+  for(var i=0;i<G.snakes.length;i++){var s=G.snakes[i];if(s.dead)continue;
+    var d=dist(o.x,o.y,s.hx,s.hy);if(d>range)continue;
+    if(fa!==null){var ang=Math.atan2(s.hx-o.x,-(s.hy-o.y));if(Math.abs(wrap(ang-fa))>1.25&&d>18)continue;}
+    s.hp-=17;s.hurt=.15;s.st='chase';hit=true;
+    var kx=(s.hx-o.x)/(d||1),ky=(s.hy-o.y)/(d||1);s.hx+=kx*16;s.hy+=ky*16;s.lunge=0;s.cd=Math.max(s.cd,.35);
+    for(var k=0;k<6;k++)part(s.hx,s.hy,kx*rnd(30,90)+rnd(-30,30),ky*rnd(30,90)+rnd(-30,30),.5,2.5,'rgba(60,140,60,',3);
+    if(s.hp<=0)killSnake(s,'knife');}
+  if(hit)shake(3);
+}
+function killSnake(s,how){
+  if(s.dead)return;s.dead=3;G.kills++;
+  for(var k=0;k<14;k++)part(s.hx,s.hy,rnd(-90,90),rnd(-90,90),.8,3,'rgba(40,110,50,',3);
+  if(!G.firstKill){G.firstKill=true;
+    banner('恭喜生存者李峥，完成变异黑蛇怪首杀成就！','first',4.5);
+    pushChat('全区播报','生存者李峥完成变异黑蛇怪首杀成就！',1);
+    var p=G.player;p.fuel=Math.min(LV[G.car.lvl].tank,p.fuel+10);p.iron+=3;
+    floatTxt(s.hx,s.hy-20,'首杀奖励 燃油+10 铁块+3','#9fe3ff');
+    setTimeout(function(){if(G&&G.state==='play'){pushChat('阿杰','李峥是谁？？首杀？');}},1800);}
+  else if(Math.random()<.35){var p2=G.player;p2.iron+=1;floatTxt(s.hx,s.hy-14,'+1 铁块','#c9d6e3');}
+}
+function canUpgrade(){var p=G.player,c=G.car;return c.lvl<3&&!c.lost&&(p.inCar||nearCar())&&p.iron>=UPCOST[c.lvl];}
+function upgrade(){
+  if(!canUpgrade())return;var p=G.player,c=G.car;p.iron-=UPCOST[c.lvl];c.lvl++;c.ads=mkAds(c.lvl);
+  banner('三轮车升到 '+c.lvl+' 级！更快、更省油、更耐撞','up',3.5);
+  pushChat('系统','生存者 独孤求败 的载具升级为【'+LV[c.lvl].name+'】',1);
+  for(var k=0;k<30;k++){var a=rnd(0,TAU),s=rnd(50,160);part(c.x,c.y,Math.cos(a)*s,Math.sin(a)*s,.8,3,'rgba(150,255,170,',2);}
+  shake(6);
+}
+function die(src){
+  if(G.state!=='play')return;
+  G.state='dying';G.dyingT=0;G.reason=src;shake(16);
+  var p=pos();for(var k=0;k<30;k++)part(p.x,p.y,rnd(-120,120),rnd(-120,120),1,4,'rgba(170,20,20,',3);
+}
+// ---------- 更新 ----------
+function update(dt){
+  if(!G)return;
+  var p=G.player,c=G.car;
+  if(G.state==='dying'){G.dyingT+=dt;dt*=.3;if(G.dyingT>1.3){showDead();}}
+  if(G.state!=='play'&&G.state!=='dying'){updateParts(dt);G.t+=dt;return;}
+  G.t+=dt;
+  var inp=G.state==='play'?getInput():{x:0,y:0,m:0};
+  if(ATK_HELD||KEYS.Space)attack();
+  p.atkCd=Math.max(0,p.atkCd-dt);if(p.swing>=0){p.swing+=dt/.22;if(p.swing>1)p.swing=-1;}
+  p.hurtT=Math.max(0,p.hurtT-dt);G.flash=Math.max(0,G.flash-dt*1.6);
 
-  function dayKm() {
-    var v = veh();
-    if (!v) return 50;
-    var d = v.dayKm;
-    if (state.vehicleLevel >= 2) d += 20;
-    return d;
+  // 步行
+  if(!p.inCar){
+    var sp=95*(Math.abs(p.x)>ROAD?0.9:1);
+    if(inp.m>0.1){p.x+=inp.x*sp*Math.min(1,inp.m*1.3)*dt;p.y+=inp.y*sp*Math.min(1,inp.m*1.3)*dt;p.face=Math.atan2(inp.x,-inp.y);p.walk+=dt*12*inp.m;p.moving=true;
+      if(Math.random()<dt*6)part(p.x+rnd(-4,4),p.y+6,rnd(-10,10),rnd(-5,10),.5,3,'rgba(150,120,90,',1);}
+    else p.moving=false;
+    collide(p,9,null);
+    // 不能穿过三轮车
+    var dcx=p.x-c.x,dcy=p.y-c.y,dd=Math.sqrt(dcx*dcx+dcy*dcy);if(dd<30&&dd>0&&!c.lost){p.x=c.x+dcx/dd*30;p.y=c.y+dcy/dd*30;}
   }
-
-  function add(res, n) {
-    if (!n) return;
-    var prev = state[res];
-    if (res === "hp") state.hp = clamp(state.hp + n, 0, 100);
-    else state[res] = Math.max(0, (state[res] || 0) + n);
-    toastRes(res, state[res] - prev);
-    flashPill(res);
+  updateCar(dt,inp);
+  if(p.inCar){p.x=c.x;p.y=c.y;}
+  // 黑雾边界
+  var o=p.inCar?c:p;
+  if(Math.abs(o.x)>FOG+15){hurt(14*dt,'被黑雾吞噬');G.fogWarn-=dt;if(G.fogWarn<=0){G.fogWarn=4;banner('黑雾会吞噬生命，快回到公路上！','warn',2.2);}}
+  if(Math.abs(o.x)>WALL){o.x=Math.sign(o.x)*WALL;if(o===c){c.vx*=-.3;}}
+  // 距离与里程碑
+  var cur=Math.max(0,(-o.y-70)/M);
+  if(cur>G.distM)G.distM=cur;
+  var mile=Math.floor(G.distM/1000);
+  if(mile>G.lastMile){G.lastMile=mile;var rk=rank();banner('里程碑 '+mile*1000+' 米 · 分区排名第 '+rk+' 名','mile',3.5);pushChat('排行榜','独孤求败 升至 E66 分区第 '+rk+' 名（'+mile+' 公里）',1);
+    if(rk===1&&!G.tutFlags.top1){G.tutFlags.top1=1;setTimeout(function(){if(G.state==='play')pushChat('系统','E66 分区榜一：独孤求败。他说他要走到公路尽头。',1);},1500);}}
+  // 饥饿
+  G.foodT+=dt;
+  if(G.foodT>=30){G.foodT=0;if(p.food>0){p.food--;p.hp=Math.min(100,p.hp+4);floatTxt(o.x,o.y-30,'吃了一份食物','#ffe08a');}else{hurt(8,'饿死在公路上');banner('没有食物了！生命在流失','warn',2.5);}}
+  updateHorde(dt);
+  updateSnakes(dt);
+  updateNpcs(dt);
+  updateEvents(dt);
+  for(var i=0;i<G.chests.length;i++)G.chests[i].t+=dt;
+  updateParts(dt);
+  // 镜头
+  var la=p.inCar?clamp(c.vy*.45,-VH*.32,VH*.1):0,lx=p.inCar?clamp(c.vx*.3,-80,80):0;
+  var tx=clamp(o.x+lx,-WALL+VW*.35,WALL-VW*.35),ty=o.y-VH*.14+la;
+  if(VW>WALL*2)tx=0;
+  var k=1-Math.exp(-dt*5);G.cam.x+=(tx-G.cam.x)*k;G.cam.y+=(ty-G.cam.y)*k;
+  G.cam.shake=Math.max(0,G.cam.shake-dt*30);
+  manageChunks();
+  // 教学提示
+  if(G.hintT>0)G.hintT-=dt;
+  if(G.tut===1&&!G.tutFlags.chestHint&&p.inCar){var nc=null;for(i=0;i<G.chests.length;i++){var ch2=G.chests[i];if(!ch2.open&&dist(c.x,c.y,ch2.x,ch2.y)<260){nc=ch2;break;}}
+    if(nc){G.tutFlags.chestHint=1;hint(isTouch?'前面有宝箱！停车，点「下车」，\n走到箱子旁边点「互动」打开。':'前面有宝箱！停车按 E 下车，\n走到箱子旁边按 E 打开。',6);}}
+  if(!G.tutFlags.snakeHint){for(i=0;i<G.snakes.length;i++){var s=G.snakes[i];if(s.st==='chase'&&!s.dead){G.tutFlags.snakeHint=1;hint(isTouch?'变异黑蛇！点「攻击」挥菜刀，\n或者开车高速撞过去。':'变异黑蛇！按空格挥菜刀，\n或者开车高速撞过去。',5);break;}}}
+}
+function updateCar(dt,inp){
+  var c=G.car,p=G.player,st=LV[c.lvl];
+  if(c.lost)return;
+  var fx=Math.sin(c.a),fy=-Math.cos(c.a),rx=-fy,ry=fx;
+  var vf=c.vx*fx+c.vy*fy,vl=c.vx*rx+c.vy*ry;
+  var off=Math.abs(c.x)>ROAD+6,maxS=st.max*(off?0.62:1),thr=0;c.brake=false;
+  if(p.inCar&&inp.m>0.12){
+    var ta=Math.atan2(inp.x,-inp.y),d=wrap(ta-c.a),tr=st.turn*clamp(Math.abs(vf)/70,.35,1);
+    if(Math.abs(d)<2.25){thr=inp.m;c.a+=clamp(d,-tr*dt,tr*dt);}
+    else if(vf>25){c.brake=true;}
+    else{thr=-0.6*inp.m;var d2=wrap(ta-(c.a+PI));c.a+=clamp(d2,-tr*dt,tr*dt);}
   }
-
-  function toastRes(res, n) {
-    if (!n) return;
-    var names = { fuel: "燃油", food: "食物", iron: "铁块", hp: "生命", distance: "行驶公里", monsterGap: "怪物距离" };
-    var label = names[res] || res;
-    var sign = n > 0 ? "+" + n : String(n);
-    showToast(label + " " + sign, n < 0);
-  }
-
-  function showToast(text, neg) {
-    var item = document.createElement("div");
-    item.className = "toast-item" + (neg ? " neg" : "");
-    item.textContent = text;
-    els.toast.appendChild(item);
-    setTimeout(function () { if (item.parentNode) item.parentNode.removeChild(item); }, 1000);
-  }
-
-  function flashPill(res) {
-    var el = document.querySelector('.pill[data-res="' + res + '"]');
-    if (!el) return;
-    el.classList.remove("flash");
-    void el.offsetWidth;
-    el.classList.add("flash");
-  }
-
-  function drive(km) {
-    var rate = kpf();
-    var need = Math.max(1, Math.ceil(km / rate));
-    var monsterMove = Math.round(km * 0.72) + 8;
-    if (state.fuel < need) {
-      var actual = Math.floor(state.fuel * rate);
-      state.fuel = 0;
-      state.distance += actual;
-      state.monsterGap = Math.round((state.monsterGap + actual - monsterMove) * 10) / 10;
-      return { actual: actual, stalled: true, spent: need, monsterMove: monsterMove };
+  if(p.fuel<=0&&thr!==0){thr=0;if(!G.tutFlags.nofuel||G.t-G.tutFlags.nofuel>6){G.tutFlags.nofuel=G.t;banner('没油了！下车找宝箱','warn',2.5);}}
+  if(thr>0){if(vf<maxS)vf+=st.acc*thr*dt*(vf<0?2.5:1);else vf-=260*dt;}
+  else if(thr<0){if(vf>0)vf-=420*dt;else vf=Math.max(vf-150*dt,-95);}
+  if(c.brake){vf-=Math.sign(vf)*Math.min(Math.abs(vf),430*dt);}
+  vf-=vf*(thr!==0?0.22:0.85)*dt;
+  if(vf>maxS*1.02)vf-=(vf-maxS)*2*dt;
+  vl*=Math.exp(-(off?3.5:6.5)*dt);
+  c.vx=fx*vf+rx*vl;c.vy=fy*vf+ry*vl;c.thr=thr;
+  c.x+=c.vx*dt;c.y+=c.vy*dt;c.spd=vf;
+  if(thr!==0)p.fuel=Math.max(0,p.fuel-Math.abs(vf)*dt/M*st.rate);
+  // 撞障碍
+  var hit=collide(c,22,c);
+  if(hit>55){shake(Math.min(12,hit/25));for(var k=0;k<Math.min(12,hit/15);k++)part(c.x+fx*20,c.y+fy*20,rnd(-80,80),rnd(-80,80),.4,2,'rgba(255,200,80,',2);}
+  if(hit>120&&p.inCar){hurt((hit-120)*.11/st.armor,'撞车身亡');}
+  // 尘土与尾气
+  var as=Math.abs(vf);
+  if(as>30&&Math.random()<dt*(off?40:14)*as/200){
+    var bx=c.x-fx*26,by=c.y-fy*26;part(bx+rx*rnd(-16,16),by+ry*rnd(-16,16),-fx*rnd(10,40)+rnd(-15,15),-fy*rnd(10,40)+rnd(-15,15),off?1.1:.7,off?7:5,off?'rgba(170,130,90,':'rgba(140,120,110,',1);}
+  if(p.inCar&&thr>0&&Math.random()<dt*8)part(c.x-fx*30+rx*8,c.y-fy*30+ry*8,-fx*20,-fy*20,.6,3,'rgba(80,80,80,',1);
+  // 被怪物潮吞没
+  if(c.y>G.horde.y-10&&!c.lost){c.lost=true;if(!p.inCar){banner('三轮车被怪物潮吞没了……','warn',3);pushChat('系统','独孤求败 的载具已损毁',1);}}
+}
+function updateHorde(dt){
+  var h=G.horde,o=pos();
+  if(!h.started&&(G.tut>=1||G.t>18)){h.started=true;h.y=o.y+1100;pushChat('系统','保护期结束，后方食肉怪物已苏醒。',1);}
+  if(!h.started){h.y=o.y+1100;return;}
+  G.ht+=dt;
+  var hs=42+Math.min(150,G.ht*.85+G.distM*.008)+Math.max(0,G.ht-180)*.15;
+  h.y-=hs*dt;
+  if(h.y-o.y>1500)h.y=o.y+1500;
+  var gap=(h.y-o.y)/M;
+  if(gap<25&&Math.random()<dt*3)shake(2+(25-gap)*.15);
+  if(h.y<=o.y+8)die('被食肉怪物潮吞没');
+  // 后方的 NPC 也会被吞
+  for(var i=0;i<G.people.length;i++){var pp=G.people[i];if(!pp.gone&&pp.y>h.y){pp.gone=true;if(!pp.silent)pushChat('系统','幸存者 '+pp.name+' 已死亡。',1);G.alive=Math.max(1,G.alive-1);}}
+}
+function updateSnakes(dt){
+  var p=G.player,c=G.car,o=pos();
+  for(var i=G.snakes.length-1;i>=0;i--){var s=G.snakes[i];
+    if(s.dead){s.dead-=dt;if(s.dead<=0)G.snakes.splice(i,1);continue;}
+    s.t+=dt;s.cd=Math.max(0,s.cd-dt);s.hurt=Math.max(0,s.hurt-dt);
+    var dx=o.x-s.hx,dy=o.y-s.hy,d=Math.sqrt(dx*dx+dy*dy)||1;
+    if(s.st==='idle'){if(d<175){s.st='chase';}s.a+=Math.sin(s.t*2+s.ph)*dt;}
+    else{
+      if(d>520){s.st='idle';}
+      var ta=Math.atan2(dx,-dy);
+      var spd=s.lunge>0?270:(s.cd>0?40:100);
+      if(s.lunge>0)s.lunge-=dt;else if(d<70&&s.cd<=0){s.lunge=.28;s.cd=1.1;s.a=ta;}
+      if(s.lunge<=0)s.a+=clamp(wrap(ta-s.a),-4*dt,4*dt);
+      var wig=Math.sin(s.t*12)*.6;
+      s.hx+=Math.sin(s.a+wig*.5)*spd*dt;s.hy+=-Math.cos(s.a+wig*.5)*spd*dt;
+      // 咬
+      if(d<(p.inCar?30:18)&&s.lunge>0){s.lunge=0;
+        if(p.inCar){if(Math.abs(c.spd)<70)hurt(6,'被变异黑蛇咬死');}
+        else hurt(11,'被变异黑蛇咬死');
+        for(var k=0;k<5;k++)part(o.x,o.y,rnd(-60,60),rnd(-60,60),.5,3,'rgba(200,30,30,',3);}
     }
-    state.fuel -= need;
-    state.distance += km;
-    state.monsterGap = Math.round((state.monsterGap + km - monsterMove) * 10) / 10;
-    return { actual: km, stalled: false, spent: need, monsterMove: monsterMove };
+    var hb={x:s.hx,y:s.hy};collide(hb,6,null);s.hx=hb.x;s.hy=hb.y;
+    // 被车撞
+    if(!c.lost&&Math.abs(c.spd)>LV[c.lvl].ram&&dist(c.x,c.y,s.hx,s.hy)<32){s.hp=0;killSnake(s,'car');shake(7);c.vx*=.88;c.vy*=.88;continue;}
+    // 身体
+    var tr=s.trail,last=tr[0];
+    if(dist(last.x,last.y,s.hx,s.hy)>4){tr.unshift({x:s.hx,y:s.hy});tr.pop();}
   }
-
-  function nightClose() {
-    var close = state.fuel <= 0 ? 35 : 14;
-    state.monsterGap -= close;
-    return close;
-  }
-
-  function hasSave() {
-    try { return !!localStorage.getItem(STORAGE_KEY); } catch (e) { return false; }
-  }
-
-  function save() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {}
-  }
-
-  function loadSave() {
-    try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return false;
-      var data = JSON.parse(raw);
-      if (!data || !data.scene) return false;
-      state = Object.assign(defaultState(), data);
-      state.flags = data.flags || {};
-      state.inventory = data.inventory || ["菜刀"];
-      return true;
-    } catch (e) { return false; }
-  }
-
-  function clearSave() {
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-  }
-
-  function deathTarget() {
-    if (state.dead) return "dead_" + state.dead;
-    if (state.hp <= 0) { state.hp = 0; state.dead = "hp"; return "dead_hp"; }
-    if (state.monsterGap <= 0) { state.monsterGap = 0; state.dead = "monster"; return "dead_monster"; }
-    return null;
-  }
-
-  function goto(id, opts) {
-    opts = opts || {};
-    state.scene = id;
-    var scene = resolve(id);
-    if (!scene) {
-      console.error("缺少场景", id);
-      return;
+}
+function updateNpcs(dt){
+  var o=pos();
+  for(var i=G.npcs.length-1;i>=0;i--){var n=G.npcs[i];
+    // 前方有废车就换车道
+    var block=false;for(var j=0;j<G.wrecks.length;j++){var w=G.wrecks[j];if(w.y<n.y&&n.y-w.y<220&&Math.abs(w.x-n.x)<w.w/2+n.w/2+8){block=true;break;}}
+    if(block){n.tx=n.x>0?-70:70;if(Math.abs(n.tx)>ROAD-30)n.tx=0;}
+    n.x+=clamp(n.tx-n.x,-70*dt,70*dt);n.y-=n.sp*dt;n.wob+=dt;
+    if(Math.random()<dt*10)part(n.x+rnd(-10,10),n.y+n.h/2,rnd(-10,10),rnd(10,30),.7,5,'rgba(140,120,110,',1);
+    // 与玩家车 / 行人碰撞
+    var c=G.car,pl=G.player,hx=n.w/2,hy=n.h/2;
+    var tgt=[];if(!c.lost)tgt.push([c,22,true]);if(!pl.inCar)tgt.push([pl,9,false]);
+    for(var q=0;q<tgt.length;q++){var e=tgt[q][0],rad=tgt[q][1];
+      var cx=clamp(e.x,n.x-hx,n.x+hx),cy=clamp(e.y,n.y-hy,n.y+hy),ddx=e.x-cx,ddy=e.y-cy,d=Math.sqrt(ddx*ddx+ddy*ddy);
+      if(d>=rad)continue;var nx,ny,pen;if(d===0){nx=e.x<n.x?-1:1;ny=0;pen=rad+hx-Math.abs(e.x-n.x);}else{nx=ddx/d;ny=ddy/d;pen=rad-d;}
+      e.x+=nx*pen;e.y+=ny*pen;
+      if(tgt[q][2]){var vn=c.vx*nx+(c.vy+n.sp)*ny;if(vn<0){c.vx-=nx*vn*1.4;c.vy-=ny*vn*1.4;
+        if(-vn>100&&pl.inCar){hurt(Math.min(14,-vn*.05/LV[c.lvl].armor),'撞车身亡');shake(9);
+          if(!n.yelled){n.yelled=1;pushChat(n.name,n.kind==='rv'?'找死啊！敢撞我的房车！':'哎哟我的车！你看着点！');}}}}
+      else if(n.sp>80&&pl.hurtT<=0){hurt(18,'被车撞死');e.x+=(e.x<n.x?-1:1)*26;}
     }
-    if (!opts.load && typeof scene.onEnter === "function") {
-      state.entered = state.entered || {};
-      if (!state.entered[id]) {
-        scene.onEnter();
-        state.entered[id] = true;
-      }
-    }
-    var deadTo = deathTarget();
-    if (deadTo && id.indexOf("dead_") !== 0 && id !== "win") {
-      goto(deadTo);
-      return;
-    }
-    scene = resolve(id);
-    render(scene);
-    if (id !== "title") save();
+    if(n.y>G.horde.y){pushChat('系统','幸存者 '+n.name+' 被怪物潮吞没。',1);G.alive=Math.max(1,G.alive-1);G.npcs.splice(i,1);continue;}
+    if(n.y<o.y-3500)G.npcs.splice(i,1);
   }
-
-  function resolve(id) {
-    var s = SCENES[id];
-    if (typeof s === "function") s = s();
-    return s;
+}
+function spawnNpc(kind){
+  var o=pos();
+  if(kind==='rv'){G.npcs.push({kind:'rv',name:'保安',x:-70,tx:-70,y:o.y+VH*.75+80,sp:300+G.car.lvl*25,w:58,h:132,col:'#e8dfcc',wob:0});
+    pushChat('保安','前面的破三轮，给我让开！');banner('保安开着房车从后面冲上来了！','warn',2.5);}
+  else{G.npcs.push({kind:'car',name:'矮胖老板',x:70,tx:70,y:o.y-VH*.7-120,sp:110,w:40,h:78,col:'#8a2f2f',wob:0});
+    askBoss();}
+}
+function askBoss(){
+  var lines=['@独孤求败 大哥，匀我点油吧！我车快没油了！','@独孤求败 兄弟，再给点油，我拿铁块跟你换！','@独孤求败 救命啊！给点油，出去了我请你吃饭！'];
+  pushChat('矮胖老板',lines[Math.min(G.npcTurn>>1,2)]);
+  showChoice('世界频道 · 矮胖老板',lines[Math.min(G.npcTurn>>1,2)]);
+}
+function updateEvents(dt){
+  G.nextChat-=dt;if(G.nextChat<=0){G.nextChat=rnd(5,10);var l=CHAT_POOL[(Math.random()*CHAT_POOL.length)|0];pushChat(l[0],l[1]);}
+  G.nextDeath-=dt;if(G.nextDeath<=0&&G.horde.started){G.nextDeath=rnd(7,14);var k=ri(1,4);G.alive=Math.max(5,G.alive-k);
+    if(Math.random()<.4)pushChat('系统','幸存者 '+NAMES[(Math.random()*NAMES.length)|0]+' 已死亡，分区剩余 '+G.alive+' 人。',1);}
+  G.nextNpc-=dt;if(G.nextNpc<=0&&G.horde.started){G.nextNpc=rnd(35,60);spawnNpc(G.npcTurn%2===0?'car':'rv');G.npcTurn++;}
+  if(G.choice){G.choice.t-=dt;$('ctimer').style.width=Math.max(0,G.choice.t/14*100)+'%';
+    var yes=$('cYes');var ok=G.player.fuel>=15;yes.className='cbtn'+(ok?'':' dis');
+    if(G.choice.t<=0)resolveChoice(false,true);}
+  for(var i=G.banners.length-1;i>=0;i--){if(i===0){G.banners[0].t+=dt;if(G.banners[0].t>G.banners[0].dur)G.banners.shift();}}
+}
+function updateParts(dt){
+  for(var i=G.parts.length-1;i>=0;i--){var q=G.parts[i];q.life-=dt;if(q.life<=0){G.parts.splice(i,1);continue;}
+    q.x+=q.vx*dt;q.y+=q.vy*dt;var fr=q.type===1?1.8:3;q.vx*=Math.exp(-fr*dt);q.vy*=Math.exp(-fr*dt);}
+  for(i=G.floats.length-1;i>=0;i--){G.floats[i].t+=dt;if(G.floats[i].t>1.6)G.floats.splice(i,1);}
+}
+// ---------- 绘制：物体 ----------
+function shadowEll(x,y,rx,ry){ctx.fillStyle='rgba(0,0,0,.33)';ell(x+7,y+9,rx,ry);ctx.fill();}
+function drawPerson(x,y,ang,o){
+  var s=o.scale||1;
+  ctx.save();ctx.translate(x,y);
+  ctx.fillStyle='rgba(0,0,0,.32)';ell(4,6,11*s,8*s);ctx.fill();
+  ctx.rotate(ang);ctx.scale(s,s);
+  var sw=o.moving?Math.sin(o.walk||0)*5:0;
+  ctx.fillStyle='#1b1512';ell(-4,-sw,3,4.5);ctx.fill();ell(4,sw,3,4.5);ctx.fill();
+  if(o.bag){ctx.fillStyle='#4b3a26';rr(-7,3,14,8,3);ctx.fill();ctx.fillStyle='#6a5236';ctx.fillRect(-5,4,10,2);}
+  var bw=o.chubby?15:11;
+  ctx.fillStyle=o.shirt;ell(0,1,bw,7);ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1;ctx.stroke();
+  // 手臂与菜刀
+  var arm=o.swing>=0?(-1.3+o.swing*2.6):0;
+  ctx.fillStyle=o.skin;circ(-bw+1,-2-sw*.5,3);ctx.fill();
+  ctx.save();ctx.translate(bw-2,1);ctx.rotate(arm);
+  ctx.fillStyle=o.shirt;rr(-2.5,-8,5,9,2);ctx.fill();ctx.fillStyle=o.skin;circ(0,-8,3);ctx.fill();
+  if(o.knife){ctx.fillStyle='#4a3020';ctx.fillRect(-1.2,-13,2.4,5);ctx.fillStyle='#d8dde2';rr(-3.5,-24,7,11,1.5);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(-3.5,-24,1.5,11);}
+  if(o.baton){ctx.fillStyle='#111';ctx.fillRect(-1.5,-26,3,18);}
+  ctx.restore();
+  if(o.dog){ctx.fillStyle='#f4efe6';circ(-4,-8,5);ctx.fill();circ(-4,-13,3.5);ctx.fill();ctx.fillStyle='#222';circ(-5,-14.5,.8);ctx.fill();circ(-3,-14.5,.8);ctx.fill();}
+  // 头
+  ctx.fillStyle=o.skin;circ(0,-1,6.5);ctx.fill();
+  ctx.fillStyle=o.hair;ctx.beginPath();ctx.arc(0,-1,6.8,-0.25,PI+0.25);ctx.fill();
+  if(o.cap){ctx.fillStyle=o.cap;ctx.beginPath();ctx.arc(0,-1,7,-.1,PI+.1);ctx.fill();ctx.fillRect(-5,-8,10,3);}
+  if(o.glasses){ctx.strokeStyle='#111';ctx.lineWidth=1.2;ctx.strokeRect(-5,-6,4,2.5);ctx.strokeRect(1,-6,4,2.5);}
+  ctx.restore();
+}
+function drawTrike(c,occupied){
+  var lvl=c.lvl;
+  ctx.save();ctx.translate(c.x+7,c.y+9);ctx.rotate(c.a);ctx.fillStyle='rgba(0,0,0,.35)';rr(-21,-34,42,70,14);ctx.fill();ctx.restore();
+  ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.a);
+  var t=G.t,vib=Math.abs(c.spd)>5?Math.sin(t*60)*.4:0;ctx.translate(vib,0);
+  // 轮子
+  ctx.fillStyle='#141414';rr(-23,8,8,18,3);ctx.fill();rr(15,8,8,18,3);ctx.fill();rr(-4,-34,8,15,3);ctx.fill();
+  ctx.fillStyle='#333';ctx.fillRect(-22,10+((t*Math.abs(c.spd)*.3)%6),6,1.5);ctx.fillRect(16,10+((t*Math.abs(c.spd)*.3)%6),6,1.5);
+  // 车架
+  ctx.strokeStyle=lvl===3?'#2d3b4a':'#3d4a40';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,-26);ctx.lineTo(0,-4);ctx.stroke();
+  ctx.fillStyle=lvl===1?'#4f6b58':lvl===2?'#5d6d76':'#2b4a6f';
+  rr(-11,-24,22,10,4);ctx.fill();// 前挡泥
+  // 货斗
+  var bed=lvl===1?'#5a7a64':lvl===2?'#6f7c84':'#2e5680';
+  ctx.fillStyle=bed;rr(-18,-2,36,34,3);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.35)';rr(-14,2,28,26,2);ctx.fill();
+  if(lvl===1){for(var i=0;i<c.ads.length;i++){var ad=c.ads[i];ctx.save();ctx.translate(ad.x+ad.w/2,ad.y+ad.h/2);ctx.rotate(ad.r);ctx.fillStyle=ad.c;ctx.fillRect(-ad.w/2,-ad.h/2,ad.w,ad.h);ctx.fillStyle='rgba(60,20,10,.55)';ctx.fillRect(-ad.w/2+1,-ad.h/2+1,ad.w-2,1);ctx.fillRect(-ad.w/2+1,-ad.h/2+3,ad.w*.6,.8);ctx.restore();}
+    ctx.fillStyle='rgba(120,60,20,.35)';circ(-12,24,3);ctx.fill();circ(10,6,2.5);ctx.fill();}
+  else{ctx.fillStyle=lvl===2?'#9aa6ae':'#7f93a8';ctx.fillRect(-18,-2,4,34);ctx.fillRect(14,-2,4,34);ctx.fillRect(-18,28,36,4);
+    ctx.fillStyle='#e6e6e6';for(var j=0;j<5;j++){circ(-16,2+j*6.5,.9);ctx.fill();circ(16,2+j*6.5,.9);ctx.fill();}
+    ctx.fillStyle='#444';rr(-9,6,18,10,2);ctx.fill();ctx.fillStyle='#b5651d';rr(-8,7,7,8,1);ctx.fill();ctx.fillStyle='#777';rr(1,7,7,8,1);ctx.fill();}
+  if(lvl===3){ctx.strokeStyle='#c8d2dc';ctx.lineWidth=1.6;for(var k=0;k<4;k++){ctx.beginPath();ctx.moveTo(-16,2+k*9);ctx.lineTo(16,2+k*9);ctx.stroke();}
+    ctx.fillStyle='#f2c14e';ctx.fillRect(-18,12,36,3);}
+  // 前保险杠
+  if(lvl>=2){ctx.fillStyle='#888';ctx.fillRect(-13,-30,26,4);ctx.fillStyle='#ccc';for(var m=0;m<(lvl===3?5:3);m++){var bx=lvl===3?-12+m*6:-9+m*9;ctx.beginPath();ctx.moveTo(bx-2.5,-30);ctx.lineTo(bx,-37);ctx.lineTo(bx+2.5,-30);ctx.fill();}}
+  // 座位与车把
+  ctx.fillStyle='#2a1d17';rr(-8,-12,16,11,3);ctx.fill();
+  ctx.strokeStyle='#222';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-13,-19);ctx.lineTo(13,-19);ctx.stroke();
+  ctx.fillStyle='#111';circ(-13,-19,2.2);ctx.fill();circ(13,-19,2.2);ctx.fill();
+  // 灯
+  ctx.fillStyle='#fff1c4';circ(0,-27,2.6);ctx.fill();
+  ctx.fillStyle=c.brake?'#ff5040':'#b3211a';ctx.fillRect(-17,31,6,3);ctx.fillRect(11,31,6,3);
+  if(lvl===3){ctx.fillStyle='#fff6d5';ctx.fillRect(-10,-14,4,3);ctx.fillRect(6,-14,4,3);}
+  // 司机
+  if(occupied){var p=G.player;
+    ctx.fillStyle='#1d1b22';ell(0,-5,11,6.5);ctx.fill();
+    ctx.fillStyle='#d9a77d';circ(-11,-15,2.6);ctx.fill();circ(11,-15,2.6);ctx.fill();
+    ctx.fillStyle='#d9a77d';circ(0,-7,6);ctx.fill();ctx.fillStyle='#120e0c';ctx.beginPath();ctx.arc(0,-7,6.3,-.2,PI+.2);ctx.fill();
+    if(p.bag){ctx.fillStyle='#4b3a26';rr(-6,-2,12,6,2);ctx.fill();}}
+  ctx.restore();
+}
+function drawCarBody(type,w,h,col,o){
+  // 以车头朝上、中心为原点
+  var hw=w/2,hh=h/2;
+  ctx.fillStyle='#121212';
+  var wy=[ -hh+h*.18, hh-h*.2 ];if(type==='bus'||type==='rv'||type==='truck')wy=[-hh+h*.13,hh-h*.16];
+  for(var i=0;i<2;i++){rr(-hw-3,wy[i]-8,6,16,2);ctx.fill();rr(hw-3,wy[i]-8,6,16,2);ctx.fill();}
+  ctx.fillStyle=col;rr(-hw,-hh,w,h,type==='sedan'?10:6);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.12)';rr(-hw+2,-hh+2,w*.35,h-4,6);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.18)';rr(hw-w*.3,-hh+2,w*.3-2,h-4,6);ctx.fill();
+  var glass=o.broken?'#2c3a44':'#3b5566';
+  if(type==='sedan'||type==='suv'){
+    ctx.fillStyle=glass;ctx.beginPath();ctx.moveTo(-hw+5,-hh+h*.3);ctx.lineTo(hw-5,-hh+h*.3);ctx.lineTo(hw-8,-hh+h*.42);ctx.lineTo(-hw+8,-hh+h*.42);ctx.fill();
+    ctx.fillRect(-hw+7,hh-h*.25,w-14,h*.08);
+    ctx.fillStyle=o.roof||'rgba(0,0,0,.12)';rr(-hw+6,-hh+h*.42,w-12,h*.33,4);ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.3)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-hw+5,-hh+h*.12);ctx.lineTo(hw-5,-hh+h*.12);ctx.stroke();
+  }else if(type==='rv'){
+    ctx.fillStyle=glass;ctx.fillRect(-hw+5,-hh+6,w-10,12);
+    ctx.fillStyle='#d8cfbb';rr(-hw+4,-hh+24,w-8,h-30,4);ctx.fill();
+    ctx.fillStyle='#9a8f7a';rr(-10,-hh+50,20,16,2);ctx.fill();ctx.fillStyle='#777';for(var k=0;k<4;k++)ctx.fillRect(-8,-hh+52+k*3.5,16,1.4);
+    ctx.fillStyle='#b5651d';ctx.fillRect(-hw,-hh+30,4,h-40);ctx.fillRect(hw-4,-hh+30,4,h-40);
+    ctx.fillStyle='rgba(60,80,95,.8)';ctx.fillRect(-hw+8,hh-30,14,10);
+  }else if(type==='truck'){
+    ctx.fillStyle='#3b3f45';rr(-hw+2,-hh+h*.25,w-4,h*.73,3);ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.35)';for(var q=0;q<6;q++){ctx.beginPath();ctx.moveTo(-hw+3,-hh+h*.3+q*h*.11);ctx.lineTo(hw-3,-hh+h*.3+q*h*.11);ctx.stroke();}
+    ctx.fillStyle=glass;ctx.fillRect(-hw+5,-hh+4,w-10,9);
+  }else if(type==='bus'){
+    ctx.fillStyle=glass;ctx.fillRect(-hw+4,-hh+4,w-8,10);
+    ctx.fillStyle='rgba(0,0,0,.2)';for(var b=0;b<5;b++)rr(-hw+8,-hh+24+b*28,w-16,20,3),ctx.fill();
   }
-
-  function renderHud() {
-    var show = !!(veh() && state.scene !== "title" && state.scene !== "intro" && state.scene !== "pack" && state.scene !== "eye" && state.scene !== "rules" && state.scene !== "faces" && state.scene !== "vehicle");
-    els.hud.classList.toggle("hidden", !show);
-    if (!show) return;
-    els.day.textContent = "第 " + state.day + " 天" + (state.vehicleLevel >= 2 ? " · 载具2级" : "");
-    els.fuel.textContent = state.fuel;
-    els.food.textContent = state.food;
-    els.iron.textContent = state.iron;
-    els.hp.textContent = state.hp;
-    els.dist.textContent = Math.round(state.distance);
-    els.gap.textContent = Math.max(0, Math.round(state.monsterGap));
-    var v = veh();
-    els.icoYou.textContent = v ? v.icon : "🛺";
-    var span = 220;
-    var youPos = 82;
-    var monPos = clamp(youPos - (state.monsterGap / span) * 70, 8, 76);
-    els.icoYou.style.left = youPos + "%";
-    els.icoMon.style.left = monPos + "%";
+  // 灯
+  ctx.fillStyle=o.dead?'#6a6450':'#fff0c0';ctx.fillRect(-hw+3,-hh,7,3);ctx.fillRect(hw-10,-hh,7,3);
+  ctx.fillStyle=o.dead?'#4a1d1a':'#c4231b';ctx.fillRect(-hw+3,hh-3,7,3);ctx.fillRect(hw-10,hh-3,7,3);
+  if(o.seed){var r=mulberry(o.seed);ctx.fillStyle='rgba(110,55,25,.55)';for(var n=0;n<9;n++){ell(-hw+r()*w,-hh+r()*h,2+r()*6,2+r()*4);ctx.fill();}
+    if(o.broken){ctx.strokeStyle='rgba(220,230,240,.5)';ctx.lineWidth=.8;var cx=-hw+w*(.3+r()*.4),cy=-hh+h*.36;for(n=0;n<5;n++){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+(r()-.5)*20,cy+(r()-.5)*10);ctx.stroke();}}}
+  if(o.burnt){ctx.fillStyle='rgba(15,10,8,.6)';rr(-hw,-hh,w,h,6);ctx.fill();ctx.fillStyle='rgba(255,90,30,.15)';ell(0,0,w*.3,h*.2);ctx.fill();}
+}
+function drawWreck(o){
+  ctx.save();ctx.translate(o.x+8,o.y+10);ctx.fillStyle='rgba(0,0,0,.35)';rr(-o.w/2,-o.h/2,o.w,o.h,8);ctx.fill();ctx.restore();
+  ctx.save();ctx.translate(o.x,o.y);
+  var bw=o.rot?o.h:o.w,bh=o.rot?o.w:o.h;
+  if(o.rot)ctx.rotate(o.flip?PI/2:-PI/2);else if(o.flip)ctx.rotate(PI);
+  if(o.jit)ctx.rotate(o.jit);
+  drawCarBody(o.type,bw,bh,o.col,{seed:o.parked?0:o.seed,broken:!o.parked,burnt:o.burnt,dead:!o.parked});
+  ctx.restore();
+}
+function drawNpc(n){
+  ctx.save();ctx.translate(n.x+8,n.y+10);ctx.fillStyle='rgba(0,0,0,.35)';rr(-n.w/2,-n.h/2,n.w,n.h,8);ctx.fill();ctx.restore();
+  ctx.save();ctx.translate(n.x,n.y);ctx.rotate(Math.sin(n.wob*3)*.01);
+  drawCarBody(n.kind==='rv'?'rv':'sedan',n.w,n.h,n.col,{});ctx.restore();
+  label(n.x,n.y-n.h/2-12,n.name+(n.kind==='rv'?' · 房车':' · 小车'),'#ffd27a');
+}
+function label(x,y,txt,col){ctx.font='bold 13px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';var w=ctx.measureText(txt).width+10;
+  ctx.fillStyle='rgba(15,8,10,.65)';rr(x-w/2,y-9,w,18,6);ctx.fill();ctx.fillStyle=col||'#fff';ctx.fillText(txt,x,y+.5);}
+function drawChest(ch){
+  var bob=ch.open?0:Math.sin(ch.t*3)*1.5;
+  shadowEll(ch.x-3,ch.y-2,17,9);
+  ctx.save();ctx.translate(ch.x,ch.y);
+  ctx.fillStyle='#6b3f1d';rr(-16,-10,32,22,3);ctx.fill();
+  ctx.fillStyle='#8a5428';rr(-16,-10,32,8,3);ctx.fill();
+  ctx.fillStyle='#e0b04a';ctx.fillRect(-16,-3,32,2.5);ctx.fillRect(-11,-10,3,22);ctx.fillRect(8,-10,3,22);
+  if(ch.open){ctx.fillStyle='#1a0e08';rr(-13,-8,26,10,2);ctx.fill();ctx.fillStyle='#8a5428';rr(-16,-22,32,10,3);ctx.fill();ctx.fillStyle='#e0b04a';ctx.fillRect(-16,-14,32,2);}
+  else{ctx.fillStyle='#ffe28a';rr(-3,-5+bob*.2,6,6,1);ctx.fill();}
+  ctx.restore();
+}
+function drawSnake(s){
+  var tr=s.trail,n=tr.length,alpha=s.dead?Math.max(0,s.dead/3):1;
+  ctx.save();ctx.globalAlpha=alpha;
+  ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.strokeStyle='rgba(0,0,0,.3)';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(tr[0].x+5,tr[0].y+6);for(var i=1;i<n;i++)ctx.lineTo(tr[i].x+5,tr[i].y+6);ctx.stroke();
+  for(i=n-1;i>0;i--){var w=2+9*(1-i/n);ctx.strokeStyle=s.hurt>0?'#fff':(i%2?'#16121c':'#221a2b');ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(tr[i].x,tr[i].y);ctx.lineTo(tr[i-1].x,tr[i-1].y);ctx.stroke();}
+  ctx.strokeStyle='rgba(150,90,200,.45)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(tr[0].x,tr[0].y);for(i=1;i<n-3;i++)ctx.lineTo(tr[i].x-1.5,tr[i].y-1.5);ctx.stroke();
+  // 头
+  var hx=s.dead?tr[0].x:s.hx,hy=s.dead?tr[0].y:s.hy;
+  ctx.translate(hx,hy);ctx.rotate(s.a);
+  ctx.fillStyle=s.hurt>0?'#fff':'#1a1420';ell(0,-2,7,9);ctx.fill();
+  if(!s.dead){ctx.fillStyle='#ff3b2a';circ(-3.5,-5,1.8);ctx.fill();circ(3.5,-5,1.8);ctx.fill();
+    if(s.st==='chase'&&Math.sin(s.t*20)>0){ctx.strokeStyle='#c2185b';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(0,-11);ctx.lineTo(0,-16);ctx.lineTo(-2,-19);ctx.moveTo(0,-16);ctx.lineTo(2,-19);ctx.stroke();}}
+  ctx.restore();
+}
+function drawTree(t){
+  var x=t.x,y=t.y,s=t.s;
+  ctx.fillStyle='rgba(0,0,0,.28)';ell(x+16*s,y+18*s,22*s,10*s);ctx.fill();
+  ctx.strokeStyle='#3a2a1e';ctx.lineCap='round';
+  for(var i=0;i<t.br;i++){var a=t.a+i*TAU/t.br,l=(16+(i*7)%9)*s;ctx.lineWidth=3.2*s;ctx.beginPath();ctx.moveTo(x,y);var mx=x+Math.cos(a)*l*.6,my=y+Math.sin(a)*l*.6;ctx.lineTo(mx,my);ctx.stroke();
+    ctx.lineWidth=1.6*s;ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(x+Math.cos(a+.35)*l,y+Math.sin(a+.35)*l);ctx.moveTo(mx,my);ctx.lineTo(x+Math.cos(a-.4)*l*.9,y+Math.sin(a-.4)*l*.9);ctx.stroke();}
+  ctx.fillStyle='#4a3626';circ(x,y,6*s);ctx.fill();ctx.fillStyle='#5e4632';circ(x-1.5*s,y-1.5*s,3.5*s);ctx.fill();
+}
+function drawRock(r){
+  ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();for(var i=0;i<r.pts.length;i+=2)ctx.lineTo(r.x+r.pts[i]+r.s*.4,r.y+r.pts[i+1]+r.s*.5);ctx.fill();
+  ctx.fillStyle='#6e5f55';ctx.beginPath();for(i=0;i<r.pts.length;i+=2)ctx.lineTo(r.x+r.pts[i],r.y+r.pts[i+1]);ctx.fill();
+  ctx.fillStyle='rgba(255,210,170,.18)';ctx.beginPath();for(i=0;i<r.pts.length;i+=2)ctx.lineTo(r.x+r.pts[i]*.6-r.s*.2,r.y+r.pts[i+1]*.6-r.s*.2);ctx.fill();
+}
+function drawDecal(d){
+  switch(d.k){
+  case 'crack':ctx.strokeStyle='rgba(15,10,10,.55)';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(d.pts[0],d.pts[1]);for(var i=2;i<d.pts.length;i+=2)ctx.lineTo(d.pts[i],d.pts[i+1]);ctx.stroke();break;
+  case 'stain':ctx.fillStyle='rgba(10,8,12,.28)';ctx.beginPath();ctx.ellipse(d.x,d.y,d.rx,d.ry,d.a,0,TAU);ctx.fill();break;
+  case 'skid':ctx.strokeStyle='rgba(10,8,8,.25)';ctx.lineWidth=4;for(var s=-1;s<=1;s+=2){ctx.beginPath();ctx.moveTo(d.x+s*9,d.y);ctx.quadraticCurveTo(d.x+s*9+d.curve,d.y-d.len/2,d.x+s*9+d.curve*.3,d.y-d.len);ctx.stroke();}break;
+  case 'bush':ctx.fillStyle='rgba(0,0,0,.22)';ell(d.x+4,d.y+5,d.s,d.s*.6);ctx.fill();ctx.fillStyle=d.c;for(var k=0;k<4;k++){circ(d.x+Math.cos(k*1.7)*d.s*.5,d.y+Math.sin(k*1.7)*d.s*.4,d.s*.55);ctx.fill();}
+    ctx.fillStyle='rgba(255,220,140,.15)';circ(d.x-d.s*.3,d.y-d.s*.3,d.s*.35);ctx.fill();break;
+  case 'bone':ctx.save();ctx.translate(d.x,d.y);ctx.rotate(d.a);ctx.fillStyle='#d9cfbf';ctx.fillRect(-7,-1.2,14,2.4);circ(-7,-1.5,1.8);ctx.fill();circ(-7,1.5,1.8);ctx.fill();circ(7,-1.5,1.8);ctx.fill();circ(7,1.5,1.8);ctx.fill();
+    ctx.fillStyle='#cfc4b2';circ(14,6,4.5);ctx.fill();ctx.fillStyle='#222';circ(12.5,5,1);ctx.fill();circ(15.5,5,1);ctx.fill();ctx.restore();break;
+  case 'sign':ctx.fillStyle='rgba(0,0,0,.3)';ctx.fillRect(d.x+4,d.y+2,4,14);ctx.fillStyle='#555';ctx.fillRect(d.x-1.5,d.y-4,3,16);
+    ctx.fillStyle='#2f5a3a';rr(d.x-30,d.y-22,60,20,3);ctx.fill();ctx.strokeStyle='#ddd';ctx.lineWidth=1.2;rr(d.x-28,d.y-20,56,16,2);ctx.stroke();
+    ctx.fillStyle='#f0f0e6';ctx.font='bold 10px '+FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(d.txt,d.x,d.y-12);break;
   }
-
-  function render(scene) {
-    renderHud();
-    var html = "";
-    if (scene.art) html += '<div class="art">' + scene.art + "</div>";
-    if (scene.banner) html += '<div class="banner">' + scene.banner + "</div>";
-    if (scene.system) html += '<div class="sys">' + scene.system + "</div>";
-    if (scene.memory) html += '<div class="memory">' + scene.memory + "</div>";
-    if (scene.text) html += '<div class="narrative">' + scene.text + "</div>";
-    if (scene.loot) html += '<div class="loot">' + scene.loot + "</div>";
-    if (scene.chat && scene.chat.length) {
-      html += '<div class="chatbox"><div class="hd">世界频道 · E66 分区</div>';
-      scene.chat.forEach(function (m) {
-        var cls = m.who === "独孤求败" ? "me" : (m.who === "系统" ? "sysu" : "");
-        html += '<div class="msg"><span class="u ' + cls + '">' + m.who + '：</span>' + m.text + "</div>";
-      });
-      html += "</div>";
-    }
-    if (scene.extra) html += scene.extra;
-    els.stage.innerHTML = html;
-    els.stage.scrollTop = 0;
-
-    els.choices.innerHTML = "";
-    (scene.choices || []).forEach(function (c, i) {
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.dataset.choice = String(i);
-      if (c.primary) btn.className = "primary";
-      if (c.ghost) btn.className = "ghost";
-      btn.innerHTML = c.text + (c.hint ? '<span class="hint">' + c.hint + "</span>" : "");
-      btn.addEventListener("click", function () { choose(i); });
-      els.choices.appendChild(btn);
-    });
+}
+// ---------- 绘制：场景 ----------
+function drawEye(x,y,s,t){
+  ctx.save();ctx.translate(x,y+Math.sin(t*1.3)*10);ctx.scale(s,s);
+  var flap=Math.sin(t*3.2);
+  ctx.fillStyle='rgba(0,0,0,.25)';ell(60,120,150,30);ctx.fill();
+  for(var side=-1;side<=1;side+=2){ctx.save();ctx.scale(side,1);ctx.rotate(flap*.25);
+    ctx.fillStyle='#3a1420';ctx.beginPath();ctx.moveTo(40,-10);ctx.quadraticCurveTo(120,-90-flap*30,190,-50-flap*20);
+    ctx.quadraticCurveTo(165,-20,175,5);ctx.quadraticCurveTo(140,-5,135,25);ctx.quadraticCurveTo(105,5,95,35);ctx.quadraticCurveTo(70,10,40,20);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#6b2a35';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(40,0);ctx.lineTo(190,-50-flap*20);ctx.moveTo(70,-20);ctx.lineTo(175,5);ctx.moveTo(70,-10);ctx.lineTo(135,25);ctx.moveTo(60,0);ctx.lineTo(95,35);ctx.stroke();ctx.restore();}
+  var g=ctx.createRadialGradient(-15,-15,5,0,0,55);g.addColorStop(0,'#fff8ee');g.addColorStop(.7,'#e9d2c4');g.addColorStop(1,'#a8746a');
+  ctx.fillStyle=g;circ(0,0,52);ctx.fill();
+  ctx.strokeStyle='rgba(190,30,40,.6)';ctx.lineWidth=1.5;for(var i=0;i<10;i++){var a=i*.63;ctx.beginPath();ctx.moveTo(Math.cos(a)*50,Math.sin(a)*50);ctx.quadraticCurveTo(Math.cos(a+.2)*38,Math.sin(a+.2)*38,Math.cos(a)*28,Math.sin(a)*28);ctx.stroke();}
+  var lx=Math.sin(t*.7)*10,ly=Math.cos(t*.9)*6;
+  var ig=ctx.createRadialGradient(lx,ly,2,lx,ly,26);ig.addColorStop(0,'#ffcc44');ig.addColorStop(.6,'#e0601a');ig.addColorStop(1,'#5a1408');
+  ctx.fillStyle=ig;circ(lx,ly,26);ctx.fill();
+  ctx.fillStyle='#0b0505';ell(lx,ly,6,20);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.7)';circ(lx-9,ly-10,5);ctx.fill();
+  ctx.restore();
+}
+function drawHorde(top,bot,left,right){
+  var hy=G.horde.y,t=G.t;
+  if(hy>bot+60)return;
+  var g=ctx.createLinearGradient(0,hy-40,0,hy+260);g.addColorStop(0,'rgba(20,5,10,0)');g.addColorStop(.25,'rgba(25,6,12,.85)');g.addColorStop(1,'rgba(8,2,5,.97)');
+  ctx.fillStyle=g;ctx.fillRect(left,hy-40,right-left,Math.max(0,bot-hy+80));
+  // 后排眼睛
+  var x0=Math.floor(left/40)*40;
+  for(var x=x0;x<right;x+=40){for(var r=1;r<6;r++){var yy=hy+r*45+((x*7+r*13)%30);if(yy>bot)break;
+    if(Math.sin(t*2+x*.1+r)>-.6){ctx.fillStyle='#ff2a1a';circ(x+((r*17)%20),yy,1.8);ctx.fill();circ(x+((r*17)%20)+6,yy,1.8);ctx.fill();}}}
+  // 前排怪物
+  for(x=x0;x<right;x+=30){var ph=x*.13,off=Math.abs(Math.sin(ph+t*2.2))*22+((x*31)%17),cx=x+Math.sin(t*5+ph)*4,cy=hy+off;
+    ctx.fillStyle='rgba(0,0,0,.35)';ell(cx+5,cy+8,15,10);ctx.fill();
+    ctx.fillStyle='#2a1218';ell(cx,cy,14,12);ctx.fill();
+    ctx.fillStyle='#3d1a22';ell(cx-3,cy-3,8,6);ctx.fill();
+    ctx.strokeStyle='#1a0a0e';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx-10,cy-4);ctx.lineTo(cx-18,cy-14+Math.sin(t*9+ph)*4);ctx.moveTo(cx+10,cy-4);ctx.lineTo(cx+18,cy-14+Math.cos(t*9+ph)*4);ctx.stroke();
+    ctx.fillStyle='#e8dccc';ctx.beginPath();ctx.moveTo(cx-6,cy-9);ctx.lineTo(cx-4,cy-15);ctx.lineTo(cx-2,cy-9);ctx.moveTo(cx+2,cy-9);ctx.lineTo(cx+4,cy-15);ctx.lineTo(cx+6,cy-9);ctx.fill();
+    ctx.fillStyle='#ff3020';circ(cx-4,cy-4,2.2);ctx.fill();circ(cx+4,cy-4,2.2);ctx.fill();}
+}
+function render(){
+  if(!G)return;
+  var cam=G.cam,sh=cam.shake,sx=sh?rnd(-sh,sh)*.6:0,sy=sh?rnd(-sh,sh)*.6:0;
+  var cx=cam.x+sx/ZOOM,cy=cam.y+sy/ZOOM;
+  var left=cx-VW/2,right=cx+VW/2,top=cy-VH/2,bot=cy+VH/2;
+  ctx.setTransform(DPR*ZOOM,0,0,DPR*ZOOM,DPR*ZOOM*(-left),DPR*ZOOM*(-top));
+  // 地面
+  ctx.fillStyle=PAT.sand;ctx.fillRect(left,top,VW,VH);
+  // 路肩
+  ctx.fillStyle='rgba(90,70,55,.55)';ctx.fillRect(-ROAD-16,top,ROAD*2+32,VH);
+  ctx.fillStyle=PAT.asphalt;ctx.fillRect(-ROAD,top,ROAD*2,VH);
+  ctx.fillStyle='rgba(0,0,0,.25)';ctx.fillRect(-ROAD,top,6,VH);ctx.fillRect(ROAD-6,top,6,VH);
+  // 标线
+  var y0=Math.floor(top/90)*90,y;
+  ctx.fillStyle='rgba(230,200,90,.75)';for(y=y0;y<bot;y+=90){ctx.fillRect(-4,y,3,50);ctx.fillRect(1,y,3,50);}
+  ctx.fillStyle='rgba(230,225,210,.55)';ctx.fillRect(-ROAD+10,top,3,VH);ctx.fillRect(ROAD-13,top,3,VH);
+  ctx.fillStyle='rgba(230,225,210,.35)';for(y=y0;y<bot;y+=90){ctx.fillRect(-ROAD/2-1.5,y+20,3,40);ctx.fillRect(ROAD/2-1.5,y+20,3,40);}
+  // 区块装饰
+  var chs=[],key,i,ch;
+  for(key in G.chunks){ch=G.chunks[key];if(ch.top<bot+40&&ch.bot>top-40)chs.push(ch);}
+  for(i=0;i<chs.length;i++){var dl=chs[i].dec;for(var j=0;j<dl.length;j++){var d=dl[j];if(d.y!==undefined&&(d.y<top-60||d.y>bot+60))continue;drawDecal(d);}}
+  for(i=0;i<chs.length;i++){var rk=chs[i].rocks;for(j=0;j<rk.length;j++)if(rk[j].y>top-40&&rk[j].y<bot+40)drawRock(rk[j]);}
+  // 宝箱
+  for(i=0;i<G.chests.length;i++){var c2=G.chests[i];if(c2.y>top-30&&c2.y<bot+30)drawChest(c2);}
+  // 废车
+  for(i=0;i<G.wrecks.length;i++){var w=G.wrecks[i];if(w.y-w.h<bot&&w.y+w.h>top)drawWreck(w);}
+  // 开局人群
+  for(i=0;i<G.people.length;i++){var pp=G.people[i];if(pp.gone||pp.y<top-40||pp.y>bot+40)continue;
+    var ang=pp.face+Math.sin(G.t*1.5+i)*.15;drawPerson(pp.x,pp.y,ang,{shirt:pp.shirt,pants:pp.pants,hair:pp.hair,skin:pp.skin,chubby:pp.chubby,glasses:pp.glasses,cap:pp.cap,baton:pp.baton,dog:pp.dog,swing:-1});
+    label(pp.x,pp.y-24,pp.name,'#f5d3a0');}
+  // 蛇
+  for(i=0;i<G.snakes.length;i++){var s=G.snakes[i];if(s.hy>top-60&&s.hy<bot+60)drawSnake(s);}
+  // NPC 车
+  for(i=0;i<G.npcs.length;i++){var n=G.npcs[i];if(n.y-n.h<bot&&n.y+n.h>top)drawNpc(n);}
+  // 三轮车与玩家
+  var p=G.player,car=G.car;
+  if(!car.lost)drawTrike(car,p.inCar);
+  if(!p.inCar&&G.state!=='title')drawPerson(p.x,p.y,p.face,{shirt:p.hurtT>0?'#c33':'#1d1b22',pants:'#2a2a33',hair:'#120e0c',skin:'#d9a77d',bag:true,knife:true,walk:p.walk,moving:p.moving,swing:p.swing});
+  if(!p.inCar&&p.swing>=0){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.face);ctx.strokeStyle='rgba(255,245,220,'+(0.7*(1-p.swing))+')';ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,40,-PI/2-1.1+p.swing*.4,-PI/2+1.1*p.swing+.2);ctx.stroke();ctx.restore();}
+  if(p.inCar&&p.swing>=0){ctx.strokeStyle='rgba(255,245,220,'+(0.6*(1-p.swing))+')';ctx.lineWidth=3;circ(car.x,car.y,50+p.swing*14);ctx.stroke();}
+  // 电线杆与电线
+  var k0=Math.floor((top-80)/320),k1=Math.floor((bot+80)/320),px=-ROAD-62;
+  ctx.strokeStyle='rgba(20,12,10,.55)';ctx.lineWidth=1;
+  for(var kk=k0;kk<=k1;kk++){var py=kk*320;ctx.beginPath();ctx.moveTo(px-14,py);ctx.quadraticCurveTo(px-6,py+160,px-14,py+320);ctx.moveTo(px+14,py);ctx.quadraticCurveTo(px+22,py+160,px+14,py+320);ctx.stroke();}
+  for(kk=k0;kk<=k1;kk++){py=kk*320;ctx.fillStyle='rgba(0,0,0,.3)';ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+40,py+46);ctx.lineTo(px+46,py+40);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#4a3524';circ(px,py,6);ctx.fill();ctx.fillStyle='#2f2118';ctx.fillRect(px-16,py-2,32,4);}
+  // 枯树（高的东西最后画）
+  for(i=0;i<chs.length;i++){var tr=chs[i].trees;for(j=0;j<tr.length;j++)if(tr[j].y>top-60&&tr[j].y<bot+60)drawTree(tr[j]);}
+  // 粒子
+  for(i=0;i<G.parts.length;i++){var q=G.parts[i],a=q.life/q.max;
+    if(q.type===1){ctx.fillStyle=q.col+(a*.35)+')';circ(q.x,q.y,q.size*(1.8-a));ctx.fill();}
+    else{ctx.fillStyle=q.col+a+')';ctx.fillRect(q.x-q.size/2,q.y-q.size/2,q.size,q.size);}}
+  // 黑雾
+  var fg=ctx.createLinearGradient(FOG-60,0,WALL+40,0);fg.addColorStop(0,'rgba(12,4,14,0)');fg.addColorStop(.55,'rgba(12,4,14,.8)');fg.addColorStop(1,'rgba(8,2,10,.98)');
+  ctx.fillStyle=fg;ctx.fillRect(FOG-60,top,right-FOG+60>0?Math.max(0,right-(FOG-60)):0,VH);
+  ctx.save();ctx.scale(-1,1);ctx.fillStyle=fg;ctx.fillRect(FOG-60,top,Math.max(0,-left-(FOG-60)),VH);ctx.restore();
+  if(right>FOG-80||left<-FOG+80){var fy0=Math.floor(top/120)*120;for(y=fy0;y<bot+120;y+=120){for(var sd=-1;sd<=1;sd+=2){var ox=sd*(FOG+70+Math.sin(G.t*.8+y*.01)*25);
+    ctx.fillStyle='rgba(30,10,35,.28)';circ(ox,y+Math.cos(G.t*.6+y)*20,42+Math.sin(y)*10);ctx.fill();ctx.fillStyle='rgba(50,20,55,.18)';circ(ox-sd*30,y+60+Math.sin(G.t+y)*15,30);ctx.fill();}}}
+  // 巨眼
+  if(top<-150&&bot>-1100)drawEye(0,-640,G.state==='title'?1.1:.9,G.t);
+  // 怪物潮
+  drawHorde(top,bot,left,right);
+  // 灯光（叠加）
+  ctx.globalCompositeOperation='lighter';
+  if(!car.lost){ctx.save();ctx.translate(car.x,car.y);ctx.rotate(car.a);
+    ctx.globalAlpha=.55;ctx.drawImage(GLOW.cone,-64,-27-200,128,200);ctx.globalAlpha=1;
+    var tl=car.brake?44:28;ctx.drawImage(GLOW.red,-14-tl/2,32-tl/2,tl,tl);ctx.drawImage(GLOW.red,14-tl/2,32-tl/2,tl,tl);
+    ctx.drawImage(GLOW.white,-14,-41,28,28);ctx.restore();}
+  for(i=0;i<G.npcs.length;i++){n=G.npcs[i];ctx.drawImage(GLOW.red,n.x-n.w/2-8,n.y+n.h/2-14,26,26);ctx.drawImage(GLOW.red,n.x+n.w/2-18,n.y+n.h/2-14,26,26);
+    ctx.globalAlpha=.4;ctx.drawImage(GLOW.cone,n.x-60,n.y-n.h/2-190,120,190);ctx.globalAlpha=1;}
+  for(i=0;i<G.chests.length;i++){c2=G.chests[i];if(c2.open||c2.y<top-40||c2.y>bot+40)continue;var gs=50+Math.sin(c2.t*3)*8;ctx.globalAlpha=.55;ctx.drawImage(GLOW.gold,c2.x-gs/2,c2.y-gs/2,gs,gs);ctx.globalAlpha=1;}
+  for(i=0;i<G.snakes.length;i++){s=G.snakes[i];if(s.dead||s.hy<top||s.hy>bot)continue;ctx.drawImage(GLOW.eye,s.hx-10,s.hy-14,20,20);}
+  if(G.horde.y<bot+40){var hx0=Math.floor(left/30)*30;for(var hx=hx0;hx<right;hx+=60){var hyy=G.horde.y+Math.abs(Math.sin(hx*.13+G.t*2.2))*22;ctx.drawImage(GLOW.red,hx-18,hyy-22,36,36);}}
+  ctx.globalCompositeOperation='source-over';
+  // 世界空间提示
+  if(G.state==='play'&&G.tut===0&&!car.lost){var bob=Math.sin(G.t*5)*5;label(car.x,car.y-62+bob,'走过去上车','#ffe08a');ctx.fillStyle='#ffe08a';ctx.beginPath();ctx.moveTo(car.x-8,car.y-50+bob);ctx.lineTo(car.x+8,car.y-50+bob);ctx.lineTo(car.x,car.y-41+bob);ctx.fill();}
+  if(G.state==='play'&&!p.inCar){var nc=nearChest();if(nc){label(nc.x,nc.y-30+Math.sin(G.t*6)*3,isTouch?'点「互动」打开':'按 E 打开','#ffe08a');}}
+  for(i=0;i<G.floats.length;i++){var f=G.floats[i];ctx.globalAlpha=Math.min(1,2-f.t*1.2);ctx.font='bold 15px '+FONT;ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.7)';ctx.strokeText(f.txt,f.x,f.y-f.t*40);ctx.fillStyle=f.col;ctx.fillText(f.txt,f.x,f.y-f.t*40);ctx.globalAlpha=1;}
+  // ---- 屏幕空间 ----
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.drawImage(FX,0,0,W,H);
+  if(G.state!=='title'&&G.state!=='dead'){
+    var gap=(G.horde.y-pos().y)/M,dang=G.horde.started?clamp(1-(gap-15)/90,0,1):0;
+    if(dang>0){var pul=.75+.25*Math.sin(G.t*(4+dang*6));var rg=ctx.createLinearGradient(0,H,0,H*(1-.45*dang));rg.addColorStop(0,'rgba(220,20,10,'+(.65*dang*pul)+')');rg.addColorStop(1,'rgba(220,20,10,0)');ctx.fillStyle=rg;ctx.fillRect(0,H*(1-.45*dang),W,H*.45*dang);
+      ctx.fillStyle='rgba(255,40,30,'+(.8*dang*pul)+')';ctx.fillRect(0,H-4,W,4);}
+    if(G.flash>0){ctx.fillStyle='rgba(200,0,0,'+(G.flash*.45)+')';ctx.fillRect(0,0,W,H);}
+    if(G.state==='dying'){ctx.fillStyle='rgba(60,0,0,'+Math.min(.6,G.dyingT*.5)+')';ctx.fillRect(0,0,W,H);}
+    drawHUD();
   }
+}
+// ---------- HUD ----------
+function bar(x,y,w,h,v,col,label,txt){
+  ctx.fillStyle='rgba(0,0,0,.45)';rr(x,y,w,h,h/2);ctx.fill();
+  if(v>0){ctx.fillStyle=col;rr(x,y,Math.max(h,w*clamp(v,0,1)),h,h/2);ctx.fill();ctx.fillStyle='rgba(255,255,255,.18)';rr(x+2,y+1,Math.max(0,w*clamp(v,0,1)-4),h*.4,h/4);ctx.fill();}
+  ctx.font='bold 11px '+FONT;ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillStyle='#fff';ctx.fillText(txt,x+6,y+h/2+.5);
+}
+function drawHUD(){
+  var p=G.player,c=G.car,x=10,y=8+SAFE_T,o=pos();
+  var pw=Math.min(180,W*0.46);
+  ctx.fillStyle='rgba(18,9,11,.6)';rr(x,y,pw,82,10);ctx.fill();ctx.strokeStyle='rgba(255,180,100,.25)';ctx.lineWidth=1;ctx.stroke();
+  ctx.font='bold 12px '+FONT;ctx.textBaseline='middle';ctx.textAlign='left';
+  ctx.fillStyle='#ffb347';ctx.fillText('燃油',x+8,y+14);
+  var tank=LV[c.lvl].tank,low=p.fuel<tank*.2&&Math.sin(G.t*8)>0;
+  bar(x+38,y+7,pw-46,14,p.fuel/tank,low?'#ff4a2a':'#e0892a','',Math.ceil(p.fuel)+' / '+tank);
+  ctx.fillStyle='#ff6b6b';ctx.font='bold 12px '+FONT;ctx.fillText('生命',x+8,y+34);
+  bar(x+38,y+27,pw-46,14,p.hp/100,p.hp<30?'#ff2a2a':'#c9363a','',Math.ceil(p.hp)+' / 100');
+  ctx.font='12px '+FONT;ctx.fillStyle='#ffe08a';ctx.textAlign='left';
+  ctx.fillText('食物 '+p.food+'/'+p.foodCap,x+8,y+54);
+  ctx.fillStyle='#c9d6e3';ctx.fillText('铁块 '+p.iron,x+8+pw*.42,y+54);
+  ctx.fillStyle='#9fe3ff';ctx.fillText(c.lost?'载具已损毁':('三轮车 Lv'+c.lvl+(c.lvl<3?'  升级需 '+UPCOST[c.lvl]+' 铁块':'  已满级')),x+8,y+71);
+  // 右上：距离与排名
+  var rx=W-12;ctx.textAlign='right';
+  ctx.font='bold 30px '+FONT;ctx.lineWidth=4;ctx.strokeStyle='rgba(0,0,0,.6)';var dt=Math.floor(G.distM)+'';ctx.strokeText(dt,rx-22,y+20);ctx.fillStyle='#fff3dd';ctx.fillText(dt,rx-22,y+20);
+  ctx.font='bold 14px '+FONT;ctx.fillStyle='#ffd7a0';ctx.fillText('米',rx,y+24);
+  ctx.font='12px '+FONT;ctx.fillStyle='#f0c79a';ctx.fillText('E66 分区 第 '+rank()+' 名 · 剩 '+G.alive+' 人',rx,y+46);
+  if(G.horde.started){var gap=Math.max(0,(G.horde.y-o.y)/M),dg=gap<40;
+    ctx.font='bold 13px '+FONT;ctx.fillStyle=dg?(Math.sin(G.t*10)>0?'#ff3b2a':'#ffb0a0'):'#ff8a7a';ctx.fillText('▼ 怪物潮 '+Math.floor(gap)+' 米',rx,y+66);}
+  else{ctx.font='12px '+FONT;ctx.fillStyle='#9fe3ff';ctx.fillText('保护期',rx,y+66);}
+  if(p.inCar){ctx.font='11px '+FONT;ctx.fillStyle='rgba(255,240,220,.75)';ctx.fillText('时速 '+Math.round(Math.abs(c.spd)/M*3.6)+' km/h',rx,y+84);}
+  // 世界频道
+  var cy=y+92,cw=Math.min(270,W*.66),lines=[],i;
+  for(i=G.chat.length-1;i>=0&&lines.length<4;i--){if(G.t-G.chat[i].t<16)lines.push(G.chat[i]);}
+  if(lines.length){ctx.fillStyle='rgba(18,9,11,.42)';rr(x,cy,cw,18+lines.length*17,8);ctx.fill();
+    ctx.font='bold 10px '+FONT;ctx.fillStyle='#e0a366';ctx.textAlign='left';ctx.fillText('世界频道 · E66 分区',x+8,cy+9);
+    ctx.font='12px '+FONT;
+    for(i=0;i<lines.length;i++){var L=lines[lines.length-1-i],ly=cy+26+i*17,age=G.t-L.t;ctx.globalAlpha=age>13?Math.max(0,(16-age)/3):1;
+      var who=L.who+'：';ctx.fillStyle=L.sys?'#9fe3ff':'#f5c99a';ctx.fillText(who,x+8,ly);var ww=ctx.measureText(who).width;
+      ctx.fillStyle=L.sys?'#d8f3ff':'#f3e6d3';var tx=L.txt;while(ctx.measureText(tx).width>cw-16-ww&&tx.length>2)tx=tx.slice(0,-2)+'…';ctx.fillText(tx,x+8+ww,ly);ctx.globalAlpha=1;}}
+  // 横幅
+  if(G.banners.length){var b=G.banners[0],a=Math.min(1,b.t*5,(b.dur-b.t)*3),by=H*.25;
+    ctx.globalAlpha=Math.max(0,a);ctx.font='bold '+(b.kind==='first'?16:15)+'px '+FONT;var bw=Math.min(W-24,ctx.measureText(b.txt).width+(b.kind==='first'||b.kind==='mile'?70:34));
+    var col={sys:'#9fe3ff',loot:'#ffd27a',warn:'#ff7a6a',first:'#ffd27a',up:'#8dff9f',mile:'#ffd27a'}[b.kind]||'#fff';
+    ctx.fillStyle='rgba(15,6,10,.85)';rr(W/2-bw/2,by-20,bw,40,12);ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();
+    if(b.kind==='first'||b.kind==='mile'){ctx.save();ctx.translate(W/2-bw/2+24,by);ctx.fillStyle='#f3e3d6';ell(0,0,11,8);ctx.fill();ctx.fillStyle='#e0601a';circ(0,0,5);ctx.fill();ctx.fillStyle='#000';ell(0,0,1.5,4.5);ctx.fill();ctx.restore();}
+    ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='middle';var bt=b.txt;while(ctx.measureText(bt).width>bw-20&&bt.length>4)bt=bt.slice(0,-2)+'…';
+    ctx.fillText(bt,W/2+(b.kind==='first'||b.kind==='mile'?14:0),by+1);ctx.globalAlpha=1;}
+  // 三轮车方向箭头
+  if(!p.inCar&&!c.lost){var sxp=(c.x-G.cam.x)*ZOOM+W/2,syp=(c.y-G.cam.y)*ZOOM+H/2;
+    if(sxp<0||sxp>W||syp<0||syp>H){var ang=Math.atan2(syp-H/2,sxp-W/2),ex=clamp(sxp,30,W-30),ey=clamp(syp,110+SAFE_T,H-60);
+      ctx.save();ctx.translate(ex,ey);ctx.rotate(ang);ctx.fillStyle='rgba(120,200,255,.85)';ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(-6,-9);ctx.lineTo(-6,9);ctx.fill();ctx.restore();
+      ctx.font='11px '+FONT;ctx.fillStyle='#bfe6ff';ctx.textAlign='center';ctx.fillText('三轮车',ex,ey+18);}}
+}
 
-  function choose(i) {
-    var scene = resolve(state.scene);
-    if (!scene || !scene.choices || !scene.choices[i]) return;
-    var c = scene.choices[i];
-    if (typeof c.effect === "function") c.effect();
-    var deadTo = deathTarget();
-    if (deadTo && (!c.next || c.next.indexOf("dead_") !== 0) && c.next !== "win") {
-      goto(deadTo);
-      return;
-    }
-    if (c.next) goto(c.next);
-    else render(resolve(state.scene));
-  }
+// ---------- 界面 ----------
+var elHint=$('hint'),elCtl=$('ctl'),elUp=$('bUp'),bCar=$('bCar'),bAct=$('bAct');
+var uiTick=0;
+function updateUI(dt){
+  uiTick+=dt;if(uiTick<0.1)return;uiTick=0;
+  if(!G||G.state!=='play'){return;}
+  var p=G.player;
+  var ht=G.hintT>0?G.hintTxt:'';
+  if(G.tut===0)ht=isTouch?'左边摇杆移动，走到三轮车旁边点「上车」':'WASD / 方向键移动，走到三轮车旁按 E 上车\n空格挥菜刀 · U 升级三轮车';
+  if(elHint.textContent!==ht){elHint.textContent=ht;}
+  elHint.classList.toggle('hidden',!ht||!!G.choice);
+  var carTxt=p.inCar?'下车':'上车';if(bCar.textContent!==carTxt)bCar.textContent=carTxt;
+  bCar.classList.toggle('glow',(!p.inCar&&nearCar())||(p.inCar&&!!nearChestFrom(G.car,150)&&Math.abs(G.car.spd)<60));
+  bAct.classList.toggle('glow',!p.inCar&&!!nearChest());
+  var cu=canUpgrade();elUp.classList.toggle('hidden',!cu);
+  if(cu){var t='升级三轮车 Lv'+(G.car.lvl+1)+'<small>消耗 '+UPCOST[G.car.lvl]+' 铁块'+(isTouch?'':' · 按 U')+'</small>';if(elUp.innerHTML!==t)elUp.innerHTML=t;}
+}
+function nearChestFrom(o,r){for(var i=0;i<G.chests.length;i++){var c=G.chests[i];if(!c.open&&dist(o.x,o.y,c.x,c.y)<r)return c;}return null;}
+function showChoice(who,msg){
+  G.choice={t:14};$('cWho').textContent=who;$('cMsg').textContent=msg;
+  $('cYes').innerHTML='换你三份燃油<small>-15 燃油 · 得 6 铁块</small>';
+  $('choice').classList.remove('hidden');
+}
+function resolveChoice(yes,timeout){
+  if(!G.choice)return;var p=G.player;
+  if(yes){if(p.fuel<15){banner('燃油不够 15，换不了','warn',1.8);return;}
+    p.fuel-=15;p.iron+=6;var o=pos();floatTxt(o.x,o.y-30,'-15 燃油  +6 铁块','#c9d6e3');
+    pushChat('独孤求败','换你三份燃油可以吗？拿铁块来。');pushChat('矮胖老板','成交成交！铁块给你，大哥仗义！');}
+  else if(timeout){pushChat('矮胖老板','@独孤求败 装没看见是吧……');}
+  else{pushChat('独孤求败','没有。');pushChat('矮胖老板','小气鬼！你等着！');}
+  G.choice=null;$('choice').classList.add('hidden');
+}
+function showDead(){
+  if(G.state==='dead')return;G.state='dead';
+  var d=Math.floor(G.distM),rk=rank(),rec=d>BEST.dist;
+  if(rec){BEST={dist:d,rank:rk};try{localStorage.setItem('gonglu_best',JSON.stringify(BEST));}catch(e){}}
+  $('deadWhy').textContent=G.reason||'你死在了公路上';
+  $('dDist').textContent=d+' 米';$('dRank').textContent='第 '+rk+' 名';$('dKill').textContent=G.kills+' 条';$('dChest').textContent=G.chestsOpened+' 个';
+  $('dBest').textContent=BEST.dist+' 米';$('newrec').classList.toggle('hidden',!rec);
+  // 排行榜
+  var rows=[],r=mulberry(SEED),names=NAMES.slice();
+  var start=Math.max(1,rk-2);
+  for(var i=start;i<start+5;i++){if(i===rk)rows.push('<div class="me"><span>'+i+'. 独孤求败（你）</span><span>'+d+' 米</span></div>');
+    else{var nm=names.splice((r()*names.length)|0,1)[0]||'幸存者';var dd=Math.max(0,Math.round(d*(1+(rk-i)*0.06+(r()-.5)*.02)));rows.push('<div><span>'+i+'. '+nm+'</span><span>'+dd+' 米</span></div>');}}
+  $('lb').innerHTML='<div style="opacity:.7;justify-content:center">E66 分区排行榜</div>'+rows.join('');
+  $('dead').classList.remove('hidden');elCtl.classList.add('hidden');elHint.classList.add('hidden');elUp.classList.add('hidden');$('choice').classList.add('hidden');
+}
+function startGame(){
+  newGame();resize();
+  G.cam.x=G.player.x;G.cam.y=G.player.y-VH*.14;
+  $('title').classList.add('hidden');$('rules').classList.add('hidden');$('dead').classList.add('hidden');
+  if(isTouch)elCtl.classList.remove('hidden');
+  JOY.m=0;JOY.id=null;KEYS={};
+}
+function titleScene(){
+  newGame();G.state='title';G.cam.x=0;G.cam.y=-420;
+}
+$('bestTxt').textContent=BEST.dist>0?('最佳成绩：'+BEST.dist+' 米 · 第 '+BEST.rank+' 名'):'目标：一路向前，走到公路尽头';
+$('opsTxt').innerHTML=isTouch?'<b>操作</b><br>左下摇杆：走路 / 开车转向加速<br>「上车/下车」：靠近三轮车上下车<br>「互动」：步行时打开宝箱<br>「攻击」：挥菜刀砍变异黑蛇<br>铁块够了会出现「升级三轮车」按钮'
+ :'<b>操作</b><br>WASD / 方向键：走路 / 开车转向加速<br>E：上下车、打开宝箱<br>空格：挥菜刀砍变异黑蛇<br>U：铁块够了升级三轮车';
+function tap(el,fn){el.addEventListener('pointerdown',function(e){e.preventDefault();e.stopPropagation();fn(e);});}
+tap($('btnStart'),function(){$('title').classList.add('hidden');$('rules').classList.remove('hidden');});
+tap($('btnGo'),startGame);
+tap($('btnAgain'),startGame);
+tap(bCar,function(){bCar.classList.add('on');toggleCar();});
+tap(bAct,function(){bAct.classList.add('on');interact();});
+tap($('bAtk'),function(e){$('bAtk').classList.add('on');ATK_HELD=true;attack();});
+tap(elUp,function(){upgrade();});
+tap($('cYes'),function(){resolveChoice(true);});
+tap($('cNo'),function(){resolveChoice(false);});
+['bCar','bAct','bAtk'].forEach(function(id){var el=$(id);['pointerup','pointercancel','pointerleave'].forEach(function(ev){el.addEventListener(ev,function(){el.classList.remove('on');if(id==='bAtk')ATK_HELD=false;});});});
+// 摇杆
+var joyBase=$('joyBase'),joyKnob=$('joyKnob');
+function joyHome(){var bx=86,by=H-112-SAFE_B;joyBase.style.left=bx+'px';joyBase.style.top=by+'px';joyKnob.style.transform='translate(0,0)';joyBase.style.opacity='.55';}
+cv.addEventListener('pointerdown',function(e){
+  if(e.pointerType==='mouse')return;
+  if(!isTouch){isTouch=true;if(G&&G.state==='play')elCtl.classList.remove('hidden');}
+  if(!G||G.state!=='play'||JOY.id!==null)return;
+  if(e.clientX>W*.6||e.clientY<H*.3)return;
+  e.preventDefault();JOY.id=e.pointerId;JOY.bx=e.clientX;JOY.by=e.clientY;JOY.x=JOY.y=JOY.m=0;
+  joyBase.style.left=JOY.bx+'px';joyBase.style.top=JOY.by+'px';joyBase.style.opacity='1';
+  try{cv.setPointerCapture(e.pointerId);}catch(er){}
+},{passive:false});
+function joyMove(e){if(e.pointerId!==JOY.id)return;e.preventDefault();var dx=e.clientX-JOY.bx,dy=e.clientY-JOY.by,l=Math.sqrt(dx*dx+dy*dy),R=50;
+  if(l>R){dx=dx/l*R;dy=dy/l*R;l=R;}JOY.x=dx/R;JOY.y=dy/R;JOY.m=l/R;joyKnob.style.transform='translate('+dx+'px,'+dy+'px)';}
+function joyEnd(e){if(e.pointerId!==JOY.id)return;JOY.id=null;JOY.x=JOY.y=JOY.m=0;joyHome();}
+window.addEventListener('pointermove',joyMove,{passive:false});
+window.addEventListener('pointerup',joyEnd);window.addEventListener('pointercancel',joyEnd);
+// 键盘
+window.addEventListener('keydown',function(e){
+  var k=e.code;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].indexOf(k)>=0)e.preventDefault();
+  if(KEYS[k])return;KEYS[k]=true;
+  if(!G)return;
+  if(G.state==='play'){if(k==='KeyE'||k==='Enter')interact();if(k==='Space')attack();if(k==='KeyU')upgrade();if(k==='KeyF')toggleCar();
+    if(G.choice&&(k==='Digit1'||k==='KeyY'))resolveChoice(true);if(G.choice&&(k==='Digit2'||k==='KeyN'))resolveChoice(false);}
+  else if((k==='Enter'||k==='Space')){if(!$('title').classList.contains('hidden')){$('title').classList.add('hidden');$('rules').classList.remove('hidden');}else if(!$('rules').classList.contains('hidden')||G.state==='dead')startGame();}
+});
+window.addEventListener('keyup',function(e){KEYS[e.code]=false;});
+window.addEventListener('blur',function(){KEYS={};ATK_HELD=false;});
+// 禁止滚动与缩放
+['touchstart','touchmove','touchend'].forEach(function(ev){document.addEventListener(ev,function(e){if(e.target.tagName!=='A'&&!(e.target.closest&&e.target.closest('.board')&&ev==='touchmove'))e.preventDefault();},{passive:false});});
+document.addEventListener('gesturestart',function(e){e.preventDefault();});
+document.addEventListener('dblclick',function(e){e.preventDefault();});
+document.addEventListener('contextmenu',function(e){e.preventDefault();});
+window.addEventListener('resize',function(){resize();joyHome();});
+if(isTouch)document.body.classList.add('touch');else document.body.classList.add('desk');
 
-  function restart(force) {
-    if (!force && !TEST) {
-      if (!confirm("确定要重新开始吗？当前进度会被清空。")) return;
-    }
-    clearSave();
-    state = defaultState();
-    goto("title");
-  }
-
-  function startNew() {
-    if (hasSave() && !TEST) {
-      if (!confirm("会覆盖已有进度，确定重新开始？")) return;
-    }
-    clearSave();
-    state = defaultState();
-    goto("intro");
-  }
-
-  function continueGame() {
-    if (!loadSave()) { goto("intro"); return; }
-    goto(state.scene, { load: true });
-  }
-
-  function openPanel() {
-    var v = veh();
-    var flags = [];
-    if (state.flags.announcedKill) flags.push("首杀已公告");
-    if (state.flags.announcedUpgrade) flags.push("升级已公告");
-    if (state.flags.bossTrade) flags.push("与矮胖老板交易");
-    if (state.flags.bossGift) flags.push("施舍过燃油");
-    if (state.flags.bossRefuse) flags.push("拒绝过讨油");
-    if (state.flags.guardFight) flags.push("与保安冲突");
-    var html = "";
-    html += row("真名", "李峥（已暴露：" + (state.flags.announcedKill ? "是" : "否") + "）");
-    html += row("游戏 ID", "独孤求败");
-    html += row("分区", "E66 分区");
-    html += row("载具", v ? (v.icon + " " + v.name + " · " + state.vehicleLevel + " 级") : "未选择");
-    html += row("油耗", v ? ("每 " + kpf() + " 公里消耗 1 燃油") : "—");
-    html += row("背包", state.inventory.join("、") || "空");
-    html += row("记录", flags.length ? flags.join("、") : "无");
-    els.panel.innerHTML = html;
-    els.modal.classList.add("show");
-  }
-
-  function row(k, v) {
-    return '<div class="row"><span>' + k + "</span><b>" + v + "</b></div>";
-  }
-
-  function setVehicle(id) {
-    state.vehicle = id;
-    var v = VEHICLES[id];
-    state.fuel = v.baseFuel + (state.bonusFuel || 0);
-    showToast("获得载具：" + v.name, false);
-    showToast("燃油 +" + state.fuel, false);
-  }
-
-  function grantInv(item) {
-    if (state.inventory.indexOf(item) === -1) state.inventory.push(item);
-  }
-
-  function calcRank() {
-    var score = state.distance * 2 + state.fuel * 4 + state.food * 3 + state.iron * 3 + state.hp;
-    if (state.flags.announcedKill) score += 80;
-    if (state.vehicleLevel >= 2) score += 90;
-    if (state.vehicle === "tri") score += 40;
-    if (state.flags.announcedUpgrade) score += 30;
-    if (state.flags.bossTrade) score += 15;
-    var rank;
-    if (score >= 620) rank = 1;
-    else if (score >= 540) rank = 2;
-    else if (score >= 470) rank = 3;
-    else if (score >= 400) rank = 5;
-    else if (score >= 330) rank = 8;
-    else if (score >= 260) rank = 12;
-    else rank = 21;
-    return { score: Math.round(score), rank: rank };
-  }
-
-  function rankBoard(rank) {
-    var names = ["要到尽头", "今夜不睡觉", "加油就跑", "路灯下的影子", "眼镜也挡不住慌", "贵宾犬先走", "还在找退出键"];
-    var rows = [];
-    if (rank <= 8) {
-      for (var n = 1; n <= 8; n++) {
-        if (n === rank) rows.push({ n: n, name: "独孤求败", me: true });
-        else rows.push({ n: n, name: names[n > rank ? n - 2 : n - 1], me: false });
-      }
-    } else {
-      for (var n = 1; n <= 7; n++) rows.push({ n: n, name: names[n - 1], me: false });
-      rows.push({ n: rank, name: "独孤求败", me: true });
-    }
-    var html = '<div class="rank">';
-    rows.forEach(function (r) {
-      html += '<div class="row' + (r.me ? " me" : "") + '"><span>第 ' + r.n + " 名</span><span>" + r.name + (r.me ? "（你）" : "") + "</span></div>";
-    });
-    html += "</div>";
-    return html;
-  }
-
-  /* ---------- 场景 ---------- */
-  var SCENES = {};
-
-  SCENES.title = function () {
-    return {
-      art: '<div class="eye-wrap"><div class="wing"></div><div class="eyeball"><div class="iris"><div class="pupil"></div></div></div><div class="wing r"></div></div>' +
-        '<div class="title-block"><div class="series">元初动漫 · 男主版改编草稿</div><h1>公路求生</h1><div class="sub">榜一说他要走到公路尽头</div><div class="ch">第一章</div></div>' +
-        '<div class="road-deco"><i></i></div>',
-      text: '<p style="text-align:center;color:#9a9388;font-size:13px;">你是重生的李峥。前世的记忆是唯一的提示。<br>先活过开局的三天。</p>',
-      choices: [
-        { text: "开始游戏", primary: true, effect: function () { startNew(); }, next: null },
-        hasSave() ? { text: "继续游戏", effect: function () { continueGame(); }, next: null } : null,
-      ].filter(Boolean)
-    };
-  };
-
-  SCENES.intro = {
-    art: '<div class="emoji">🌅</div><div class="caption">末路降临前</div>',
-    text: '<p>李峥猛地睁开眼。</p><p>出租屋的天花板还在。窗外没有长翅膀的眼球，日历停在「末路求生」降临的前一刻。不是梦。他回来了。</p><p>上一世他空手进场，选了最耗油的重型车，在那条望不到尽头的公路上苟了八年，最终因为时空珠的秘密泄露，被人追杀至死。</p><p>这一世，他还有时间打包。</p>',
-    choices: [{ text: "打开包，开始收拾", primary: true, next: "pack" }]
-  };
-
-  SCENES.pack = {
-    art: '<div class="emoji">🧳　🔪</div><div class="caption">打包物资</div>',
-    memory: "菜刀一定要带。上一世空手进来，他吃过亏。",
-    text: '<p>空间有限，带多了也没用——系统会把人连人带行李一起拉走，但能带走的东西并不多。李峥把菜刀横在包最上面，剩下的位置，得做个取舍。</p>',
-    choices: [
-      { text: "多塞食物", hint: "开局食物 +6，不额外带燃油罐", effect: function () { state.pack = "food"; state.food = 6; state.bonusFuel = 0; grantInv("压缩饼干"); }, next: "eye" },
-      { text: "多带燃油罐", hint: "开局食物 +3，选车后额外 +8 燃油", effect: function () { state.pack = "fuel"; state.food = 3; state.bonusFuel = 8; grantInv("小油罐"); }, next: "eye" },
-      { text: "食物和燃油都带一些", hint: "开局食物 +4，选车后额外 +4 燃油（推荐）", effect: function () { state.pack = "mix"; state.food = 4; state.bonusFuel = 4; grantInv("小油罐"); }, next: "eye" }
-    ]
-  };
-
-  SCENES.eye = {
-    art: '<div class="eye-wrap"><div class="wing"></div><div class="eyeball"><div class="iris"><div class="pupil"></div></div></div><div class="wing r"></div></div><div class="caption">系统降临</div>',
-    system: "末路求生世界降临。\n倒计时：3、2、1——",
-    text: '<p>窗户外面的天色像被一只手撕开。一只长着肉翅的巨大眼球从裂口里挤出来，瞳孔缓慢地扫过整座城市。</p><p>李峥抓紧背包。眼前一黑。</p><p>再睁眼时，他已经站在一条望不到尽头的沥青公路上。热风贴着路面吹，远处是同样茫然的人群。</p>',
-    choices: [{ text: "看向天空中的眼球", primary: true, next: "rules" }]
-  };
-
-  SCENES.rules = {
-    art: '<div class="board"><h3>末路规则</h3>一、每人一辆初始载具，油量极少。<br>二、沿公路向前行驶，路上刷新宝箱。箱中有燃油与物资，亦可能有危险。<br>三、公路不可逆行，不可回头。<br>四、后方有食肉怪物追赶。停下太久，就会成为它的食物。<br>五、游戏中的死亡，就是真正的死亡。</div>',
-    system: "欢迎来到末路求生。当前：E66 分区。\n在心里默念「游戏面板」可查询信息、选择初始载具。",
-    text: '<p>李峥把规则在心里过了一遍。和上一世一样，又不完全一样——这一次，系统更强调燃油，也更明确地告诉所有人：后面有东西在追。</p>',
-    choices: [{ text: "我记住了", primary: true, next: "faces" }]
-  };
-
-  SCENES.faces = {
-    art: '<div class="cards">' +
-      '<div class="card"><div class="nm">矮胖老板</div><div class="ds">精于算计，开局就在打量别人的车。</div></div>' +
-      '<div class="card"><div class="nm">男保安</div><div class="ds">狂妄自大，想立威称霸。</div></div>' +
-      '<div class="card"><div class="nm">眼镜男</div><div class="ds">技术宅男，还在低头研究面板。</div></div>' +
-      '<div class="card"><div class="nm">抱贵宾犬的女人</div><div class="ds">人比狗还慌。</div></div></div>',
-    text: '<p>系统扫过附近的人，弹出一张张人物卡。李峥并不打算跟他们交朋友——上一世心软的代价，他已经付过了。</p><p>远处突然有人扯着嗓子喊：「房车必须归我！」人群往一个方向涌。保安已经把棍子横在身前，眼神发狠。</p>',
-    choices: [{ text: "不去凑热闹，去选载具", primary: true, next: "vehicle" }]
-  };
-
-  SCENES.vehicle = {
-    art: '<div class="emoji">🚐　🚗　🛺　🚙</div><div class="caption">选择初始载具</div>',
-    memory: "前世为了买油死在路上的可不少。好车人人抢，真正要命的是油。",
-    text: '<p>初始载具一经选定，就是开局唯一的行动工具。李峥看向那排车。房车周围人最多，越野车看起来最猛，轿车中规中矩。最边上停着一辆破旧的三轮车，车身贴满小广告，在太阳底下反着刺眼的光。</p>',
-    choices: [
-      { text: "🚐 抢房车", hint: "宽敞能睡，油箱很浅。周围人最多。", next: "veh_rv" },
-      { text: "🚗 选轿车", hint: "速度尚可，油耗一般。", effect: function () { setVehicle("car"); }, next: "veh_car" },
-      { text: "🛺 选贴满广告的三轮车", hint: "又破又慢。前世记忆：最省油，可以跑 300 公里。", effect: function () { setVehicle("tri"); }, next: "veh_tri" },
-      { text: "🚙 选越野车", hint: "看起来最强。上一世，他就是栽在这上面。", effect: function () { setVehicle("suv"); }, next: "veh_suv" }
-    ]
-  };
-
-  SCENES.veh_tri = {
-    art: '<div class="emoji">🛺</div><div class="caption">广告三轮车</div>',
-    memory: "可以跑 300 公里。活过前期，才有以后。",
-    text: '<p>有人从旁边笑出声：「还真有人选这垃圾。」</p><p>李峥跨上车，广告纸在风里啪啪响。油表比看上去有底气。保安和抢房车的人群还在那边吵，他没有回头。</p>',
-    choices: [{ text: "发动三轮，向前开", primary: true, next: "day1" }]
-  };
-
-  SCENES.veh_car = {
-    art: '<div class="emoji">🚗</div><div class="caption">轿车</div>',
-    text: '<p>李峥拉开车门坐进去。油表低得刺眼，但至少能跑。远处房车那边已经有人动手，保安在骂，有人扯着嗓子喊：「杀——杀人了？」</p><p>他不想回头。先离开这片混乱。</p>',
-    choices: [{ text: "发动轿车，向前开", primary: true, next: "day1" }]
-  };
-
-  SCENES.veh_suv = {
-    art: '<div class="emoji">🚙</div><div class="caption">越野车</div>',
-    memory: "手指握上方向盘的瞬间，前世的干渴和饥饿一起涌上来。这一世还选它，就是找死——可速度，确实能把一些麻烦甩在后面。",
-    text: '<p>越野车的座位还记得他。油表同样刻薄。李峥咬了咬牙，还是拧了钥匙。这一次他知道自己在做什么：用更高的速度去换更薄的油，一路都要精打细算。</p>',
-    choices: [{ text: "发动越野车，向前开", primary: true, next: "day1" }]
-  };
-
-  SCENES.veh_rv = {
-    art: '<div class="emoji">🚐</div><div class="caption">房车</div>',
-    text: '<p>李峥刚摸上车门，一只手横过来挡住他。保安拦在正前方，棍子几乎抵到他胸口，眼神发狠。</p><p>「这房车，必须归我。」</p><p>身后已经有人起哄，更远处有人在喊：「杀——杀人了？！」人群乱了。</p>',
-    choices: [
-      { text: "菜刀已经在手里，硬刚", hint: "生命会受损，得到这辆油老虎", effect: function () { state.flags.guardFight = true; add("hp", -25); setVehicle("rv"); }, next: "rv_fight" },
-      { text: "不值得为这辆油老虎拼命，改选三轮", hint: "避开冲突，改乘省油的三轮车", effect: function () { setVehicle("tri"); }, next: "veh_tri" },
-      { text: "趁乱改抢旁边的轿车", hint: "躲开保安，改开轿车", effect: function () { setVehicle("car"); }, next: "veh_car" }
-    ]
-  };
-
-  SCENES.rv_fight = {
-    art: '<div class="emoji">🔪</div><div class="caption">冲突</div>',
-    text: '<p>保安挥棍要立威。李峥没有给他第二下的机会——菜刀斜劈下去，棍子和人一起歪倒。手腕处立刻见了红。周围有人尖叫，有人后退。</p><p>李峥拉开房车门坐进去。手还在发麻，但方向盘已经在手里。这辆车宽敞，油表却浅得可笑。</p>',
-    choices: [{ text: "开走房车", primary: true, next: "day1" }]
-  };
-
-  SCENES.day1 = function () {
-    return {
-      art: '<div class="emoji">' + (veh() ? veh().icon : "🛣") + '</div><div class="caption">第一天</div>',
-      system: "第一天行驶任务：50 公里。\n后方食肉怪物已苏醒。不要心存侥幸。",
-      text: '<p>公路又直又宽。两侧不是田野，是滚着的黑雾。李峥知道，走进去的人不会再出来。</p><p>后视镜里，天际线底下有什么东西正在慢慢拱起来。还远。但不会一直远。</p>',
-      choices: [{ text: "向前开", primary: true, next: "day1_road" }]
-    };
-  };
-
-  SCENES.day1_road = function () {
-    var run = state.flags._d1 || { actual: 0, stalled: false, spent: 0 };
-    var body = run.stalled
-      ? "<p>油表一下子掉到了底。车还没跑出多远就喘着停了。今天的路没走完，后方那东西却没有停。</p>"
-      : "<p>车轮压过发烫的沥青。这一段路跑了 " + run.actual + " 公里，耗油 " + run.spent + "。后视镜里，那个黑影还在，但暂时没有贴近。</p><p>路边出现一只脏旧的箱子，箱盖半掀着。草丛里同时传来细而密的鳞片摩擦声。</p>";
-    return {
-      onEnter: function () {
-        state.day = 1;
-        state.flags._d1 = drive(dayKm());
-      },
-      art: run.stalled ? '<div class="emoji">⛽</div><div class="caption">燃油耗尽</div>' : '<div class="emoji">📦　🐍</div><div class="caption">路边</div>',
-      text: body,
-      choices: run.stalled
-        ? [{ text: "只能下车想办法", primary: true, next: "stalled" }]
-        : [{ text: "靠近箱子", primary: true, next: "snake" }]
-    };
-  };
-
-  SCENES.snake = {
-    art: '<div class="emoji">🐍</div><div class="caption">变异黑蛇</div>',
-    text: '<p>一只变异黑蛇从箱后弹出来，鳞片像浸过油的铁，信子打在空气里发出噼啪声。它冲着驾驶位来。</p><p>李峥的手已经握上了菜刀。</p>',
-    choices: [
-      { text: "迎上去，菜刀劈头", hint: "痛快，但容易受伤", effect: function () { add("hp", -15); state.flags.snake = "head"; }, next: "firstkill" },
-      { text: "侧身避开，再补一刀", hint: "更稳妥", effect: function () { add("hp", -8); state.flags.snake = "side"; }, next: "firstkill" },
-      { text: "想用车撞过去", hint: "三轮不一定轧得死；四轮车会费油", effect: function () {
-        if (state.vehicle === "tri") { add("hp", -20); state.flags.snake = "ram_tri"; }
-        else { add("hp", -5); add("fuel", -2); state.flags.snake = "ram"; }
-      }, next: "firstkill" }
-    ]
-  };
-
-  SCENES.firstkill = function () {
-    var how = state.flags.snake;
-    var line = "菜刀劈进蛇头，黑血溅了一裤脚。它还在抽动，李峥又补了一刀，直到它彻底不动。";
-    if (how === "side") line = "他侧身让过扑击，菜刀从蛇颈斜砍进去。刃口卡住了一次，他低骂一声，把它劈开。";
-    if (how === "ram_tri") line = "三轮车太轻，只把蛇撞偏。它缠上后轮，李峥几乎被掀下去，只好用菜刀连砍数下，才把它从车轮上剥下来。";
-    if (how === "ram") line = "轮胎碾过蛇身，发出令人牙酸的声响。车子颠了一下，还是用菜刀补了最后一击，免得它再爬起来。";
-    return {
-      art: '<div class="emoji">🔪</div><div class="caption">首杀</div>',
-      text: "<p>" + line + "</p>",
-      system: "恭喜生存者李峥，完成变异黑蛇怪首杀成就！\n是否将此成就进行全区公告？",
-      memory: "真名被喊了出来。上一世，时空珠的秘密就是在过于高调之后被泄露的。",
-      choices: [
-        { text: "全区公告", hint: "可能有额外奖励，也会把名字暴露给整个分区", effect: function () { state.flags.announcedKill = true; add("fuel", 3); grantInv("空间背包"); }, next: "loot1" },
-        { text: "暂不公告", hint: "更低调。仍会获得首杀物资", effect: function () { state.flags.announcedKill = false; grantInv("空间背包"); }, next: "loot1" }
-      ]
-    };
-  };
-
-  SCENES.loot1 = function () {
-    return {
-      onEnter: function () {
-        add("food", 1);
-        add("iron", 2);
-        add("fuel", 5);
-        grantInv("换洗衣物");
-        grantInv("鲜肉包");
-        grantInv("空间背包");
-      },
-      art: '<div class="emoji">🎒</div><div class="caption">开箱</div>',
-      banner: state.flags.announcedKill ? "全区播报：生存者李峥完成变异黑蛇怪首杀成就！" : "",
-      text: state.flags.announcedKill
-        ? "<p>天空中那只眼球的瞳孔亮了一下。加粗的公告砸进每一个人的频道。李峥把奖励收进刚得到的空间背包，没有在频道里说话。</p>"
-        : "<p>他没有选择公告。背包轻轻一沉，空间被打开了。先活下去，再谈名声。</p>",
-      loot: "<strong>获得物资</strong>空间背包 ×1<br>换洗衣物 ×1<br>鲜肉包 ×1<br>铁块 ×2<br>燃油 ×5" + (state.flags.announcedKill ? "<br>公告额外奖励：燃油 ×3" : ""),
-      choices: [{ text: "打开世界频道看看", primary: true, next: "chat_million" }]
-    };
-  };
-
-  SCENES.chat_million = {
-    art: '<div class="emoji">💬</div><div class="caption">世界频道</div>',
-    chat: [
-      { who: "还在找退出键", text: "这游戏怎么退出！！我要回家！" },
-      { who: "今夜不睡觉", text: "我开出来一辆婴儿车，你们呢？" },
-      { who: "想发财的人", text: "等出去了我给一百万，谁现在把油让给我。" },
-      { who: "眼镜也挡不住慌", text: "先别信许诺。面板都还没看明白。" }
-    ],
-    text: '<p>保护期才第一天，频道里已经又吵又乱。有人卖惨，有人许诺，有人还在问怎么退出。</p>',
-    choices: [
-      { text: "回一句：先把一百万打过来", effect: function () { state.flags.million = "mock"; }, next: "chat_million_after" },
-      { text: "懒得理", effect: function () { state.flags.million = "ignore"; }, next: "chat_million_after" },
-      { text: "警告一句：现在谈钱的，多半活不过三天", effect: function () { state.flags.million = "warn"; }, next: "chat_million_after" }
-    ]
-  };
-
-  SCENES.chat_million_after = function () {
-    var reply, extra;
-    if (state.flags.million === "mock") {
-      reply = { who: "独孤求败", text: "先把一百万打过来。" };
-      extra = { who: "想发财的人", text: "……你谁啊？有油再说风凉话。" };
-    } else if (state.flags.million === "warn") {
-      reply = { who: "独孤求败", text: "现在谈钱的，多半活不过三天。" };
-      extra = { who: "眼镜也挡不住慌", text: "他说得对。先把今天的公里数跑完。" };
-    } else {
-      reply = null;
-      extra = { who: "今夜不睡觉", text: "百万先生又开始了。" };
-    }
-    var chat = [
-      { who: "想发财的人", text: "等出去了我给一百万，谁现在把油让给我。" }
-    ];
-    if (reply) chat.push(reply);
-    chat.push(extra);
-    return {
-      art: '<div class="emoji">💬</div>',
-      chat: chat,
-      text: state.flags.million === "ignore"
-        ? "<p>李峥把频道静音了一半。这种话上一世听得太多，没有一句兑过现。</p>"
-        : "<p>他说完就关掉输入框。频道立刻又被别的求救和骂声盖过去。</p>",
-      choices: [{ text: "天色要暗了，先找地方停", primary: true, next: "night1" }]
-    };
-  };
-
-  SCENES.night1 = function () {
-    var eats = state.food > 0
-      ? [{ text: "吃一份食物", hint: "食物 -1，生命 +10（不超过 100）", effect: function () { add("food", -1); add("hp", 10); state.flags.eat1 = true; }, next: "night1_sleep" },
-         { text: "忍着，把食物留给更难的时候", hint: "生命 -20", effect: function () { add("hp", -20); state.flags.eat1 = false; }, next: "night1_sleep" }]
-      : [{ text: "没有食物了，只能忍着", hint: "生命 -20", effect: function () { add("hp", -20); state.flags.eat1 = false; }, next: "night1_sleep" }];
-    return {
-      art: '<div class="emoji">🌙</div><div class="caption">第一夜</div>',
-      system: "白天为早上 6 点到晚上 9 点。夜晚不要离开载具 8 米范围，否则可能遇到不好的东西。",
-      text: '<p>天色像被人突然按灭。公路两侧的黑雾里传来低嗅声，偶尔有什么东西用爪子刮沥青。李峥把车停稳，检查门窗。</p><p>' + (state.food > 0 ? "肚子已经空了。要不要吃一份食物？" : "包里没有食物了。这一夜只能硬扛。") + "</p>",
-      choices: eats
-    };
-  };
-
-  SCENES.night1_sleep = function () {
-    var noFood = state.flags.eat1 === false && state.food === 0 && !arguments.length;
-    var text;
-    if (state.flags.eat1) text = "<p>热食下肚，精神稍稍回来。他没离开车门八米，就着座位闭上眼。后视镜里，黑影比黄昏时近了一点。</p>";
-    else if (state.food === 0 && !state.flags.eat1) text = "<p>包里已经没有食物了。饥饿咬着胃，他只能靠在座位上挨过这一夜。后视镜里，黑影近了一点。</p>";
-    else text = "<p>他空着肚子挨过这一夜。睡得很浅。后视镜里，黑影比黄昏时近了一点。</p>";
-    var v = veh();
-    return {
-      onEnter: function () {
-        var close = nightClose();
-        state.flags._n1 = close;
-        if (v) add("hp", v.comfort);
-      },
-      art: '<div class="emoji">😴</div><div class="caption">夜宿载具</div>',
-      text: text + "<p>食肉怪物今夜靠近了 " + (state.flags._n1 || 14) + " 公里。" + (v && v.comfort ? "载具里勉强能休息，生命稍有恢复。" : "") + "</p>",
-      choices: [{ text: "天亮了，继续向前", primary: true, next: "day2" }]
-    };
-  };
-
-  SCENES.day2 = function () {
-    return {
-      onEnter: function () { state.day = 2; },
-      art: '<div class="emoji">' + (veh() ? veh().icon : "🛣") + '</div><div class="caption">第二天</div>',
-      system: "第二天行驶任务：50 公里。",
-      text: state.flags.announcedKill
-        ? "<p>频道里已经有人在打听：「李峥是谁？」「独孤求败是不是就是他？」李峥把真名隐藏得更严，只把 ID 留在面板上。</p><p>公路依旧没有尽头。油要省着花，箱子却不能放过。</p>"
-        : "<p>频道里还在吵昨天的首杀，只是没人把名字和这辆车对上。李峥喜欢这样。公路依旧没有尽头，箱子却不能放过。</p>",
-      choices: [{ text: "继续赶路，寻找宝箱", primary: true, next: "day2_road" }]
-    };
-  };
-
-  SCENES.day2_road = function () {
-    var run = state.flags._d2 || { actual: 0, stalled: false, spent: 0 };
-    var body = run.stalled
-      ? "<p>油再一次见了底。车停在路中央，热风灌进来。后方的咀嚼声似乎比昨天更清楚了。</p>"
-      : "<p>今天又向前开了 " + run.actual + " 公里，耗油 " + run.spent + "。路边接连出现两只物资箱：一只普通木箱，一只边缘泛着浅浅的银光。</p>";
-    return {
-      onEnter: function () {
-        state.day = 2;
-        state.flags._d2 = drive(dayKm());
-      },
-      art: run.stalled ? '<div class="emoji">⛽</div><div class="caption">燃油耗尽</div>' : '<div class="emoji">📦📦</div><div class="caption">物资箱</div>',
-      text: body,
-      choices: run.stalled
-        ? [{ text: "只能下车想办法", primary: true, next: "stalled" }]
-        : [
-            { text: "小心打开", hint: "更稳妥", effect: function () { state.flags.chestCare = true; }, next: "chests2" },
-            { text: "直接撬开", hint: "可能刮伤", effect: function () { state.flags.chestCare = false; add("hp", -6); }, next: "chests2" }
-          ]
-    };
-  };
-
-  SCENES.chests2 = function () {
-    return {
-      onEnter: function () {
-        add("food", 2);
-        add("iron", 4);
-        add("fuel", 6);
-        grantInv("自热米饭");
-        grantInv("自热小火锅");
-      },
-      art: '<div class="emoji">🍜</div><div class="caption">收获</div>',
-      text: state.flags.chestCare
-        ? "<p>他先用菜刀拨开箱盖。木箱里没有活物，银光箱里整齐码着食物、铁块和一小桶燃油。这些东西，和上一世他见过的「好箱子」几乎一模一样。</p>"
-        : "<p>他撬得太猛，箱沿的铁皮划破了手背。好在箱子本身是正经物资：食物、铁块、燃油，一样不少。</p>",
-      loot: "<strong>获得物资</strong>自热米饭 ×1<br>自热小火锅 ×1<br>铁块 ×4<br>燃油 ×6<br><span style='color:#9a9388'>（菜刀旁的提示在脑中闪过：载具升到 2 级，需要铁块。）</span>",
-      choices: [{ text: "频道又响了", primary: true, next: "chat_boss" }]
-    };
-  };
-
-  SCENES.chat_boss = function () {
-    var choices = [];
-    if (state.food > 0) {
-      choices.push({ text: "「换你三份燃油可以吗」", hint: "用 1 份食物换他 3 份燃油", effect: function () {
-        state.flags.bossTrade = true;
-        add("food", -1);
-        add("fuel", 3);
-      }, next: "boss_after" });
-    }
-    choices.push({ text: "拒绝", hint: "不给，也不解释", effect: function () { state.flags.bossRefuse = true; }, next: "boss_after" });
-    if (state.fuel >= 2) {
-      choices.push({ text: "施舍一份燃油", hint: "燃油 -2。可能留下人情，也可能引来更多伸手的人", effect: function () { state.flags.bossGift = true; add("fuel", -2); }, next: "boss_after" });
-    }
-    return {
-    art: '<div class="emoji">💬</div><div class="caption">有人在叫你</div>',
-    chat: [
-      { who: "矮胖老板", text: "@独孤求败 兄弟，求匀一点燃油，我油灯已经红了，真的要死了……" },
-      { who: "还在找退出键", text: "啊？独孤求败是谁，大佬吗？" },
-      { who: "想发财的人", text: "大佬行行好，我也没油了，出去我给一百万。" }
-    ],
-    memory: "上一世这种求救，真假都有。他心软过，也为此付过代价。",
-    text: '<p>李峥看着自己的油表。矮胖老板开局就在打量别人的车，现在却把求援直接拍到他脸上。</p>',
-    choices: choices
-    };
-  };
-
-  SCENES.boss_after = function () {
-    var chat, text;
-    if (state.flags.bossTrade) {
-      chat = [
-        { who: "独孤求败", text: "换你三份燃油可以吗。" },
-        { who: "矮胖老板", text: "……你这口价也太狠了。行，我认。一份吃的，三份油，成交。" },
-        { who: "想发财的人", text: "这也行？那我呢？！" }
-      ];
-      text = "<p>交易瞬间完成。频道里立刻有人骂他冷血，也有人说这才叫规矩。李峥把油收好，没有再回第二句。</p>";
-    } else if (state.flags.bossGift) {
-      chat = [
-        { who: "独孤求败", text: "给你一份。别再来问第二次。" },
-        { who: "矮胖老板", text: "谢了谢了！我记住了，独孤求败！" },
-        { who: "想发财的人", text: "大佬也给我一点啊！！出去一百万！" }
-      ];
-      text = "<p>油送出去的瞬间，频道里伸手的人明显多了。李峥把频道免打扰打开。这一世他不该这么做——可那人油灯已经红了。</p>";
-    } else {
-      chat = [
-        { who: "独孤求败", text: "没有。" },
-        { who: "矮胖老板", text: "……行，各走各的。你也别在这儿装好人。" },
-        { who: "今夜不睡觉", text: "开局就求人油，也不看看别人愿不愿意。" }
-      ];
-      text = "<p>他拒绝得很干净。频道里骂声和附和混在一起，很快被别的求救盖过去。</p>";
-    }
-    return {
-      art: '<div class="emoji">💬</div>',
-      chat: chat,
-      text: text,
-      choices: [{ text: "再往前开一段", primary: true, next: "day2_event" }]
-    };
-  };
-
-  SCENES.day2_event = function () {
-    if (state.flags.announcedKill) {
-      return {
-        art: '<div class="emoji">🚧</div><div class="caption">平行公路</div>',
-        text: '<p>系统忽然打开一段短暂的平行公路。另一辆车在侧面闪灯，车窗降下一条缝，是那个眼镜男。</p><p>「我看见公告了。我不是来抢的——黑雾别下去，下去就没了。还有，你名头已经响了，夜里小心有人跟车。」他说完就加速离开，像生怕被当成敌人。</p>',
-        choices: [
-          { text: "记下了，自己也加速离开", hint: "额外耗油 1，拉开距离", effect: function () { if (state.fuel > 0) add("fuel", -1); state.monsterGap += 8; }, next: "night2" },
-          { text: "停车观察一会儿再走", hint: "怪物会靠近一些", effect: function () { state.monsterGap -= 10; }, next: "night2" }
-        ]
-      };
-    }
-    return {
-      onEnter: function () { add("fuel", 3); },
-      art: '<div class="emoji">🛢️</div><div class="caption">路边</div>',
-      text: '<p>没有人来打扰。李峥在护栏边发现一只被扔掉的小油罐，还剩一点油。他没有问是谁丢的，只是把油抽进自己的箱。</p>',
-      loot: "<strong>获得物资</strong>燃油 ×3",
-      choices: [{ text: "天要黑了，停车过夜", primary: true, next: "night2" }]
-    };
-  };
-
-  SCENES.night2 = function () {
-    var eats = state.food > 0
-      ? [{ text: "吃一份食物", hint: "食物 -1，生命 +10", effect: function () { add("food", -1); add("hp", 10); state.flags.eat2 = true; }, next: "night2_sleep" },
-         { text: "再忍一晚", hint: "生命 -20", effect: function () { add("hp", -20); state.flags.eat2 = false; }, next: "night2_sleep" }]
-      : [{ text: "没有食物了，只能硬扛", hint: "生命 -20", effect: function () { add("hp", -20); state.flags.eat2 = false; }, next: "night2_sleep" }];
-    return {
-      art: '<div class="emoji">🌙</div><div class="caption">第二夜</div>',
-      system: "不要离开载具 8 米。两侧黑雾中有嚎叫声。",
-      text: '<p>第二天的夜比第一夜更吵。黑雾里的东西开始围着 8 米的边界打转。李峥把菜刀放在腿上，听着自己的呼吸。</p><p>' + (state.food > 0 ? "又到了该不该吃饭的时候。" : "食物已经没了。只能硬扛这一夜。") + "</p>",
-      choices: eats
-    };
-  };
-
-  SCENES.night2_sleep = function () {
-    var v = veh();
-    return {
-      onEnter: function () {
-        var close = nightClose();
-        state.flags._n2 = close;
-        if (v) add("hp", v.comfort);
-      },
-      art: '<div class="emoji">😴</div><div class="caption">夜宿载具</div>',
-      text: "<p>" + (state.flags.eat2 ? "他吃了自热米饭，热气在车厢里散开，几乎像是还在人的世界里。" : "他空着肚子睡。睡不沉，但撑过来了。") + "食肉怪物今夜靠近了 " + (state.flags._n2 || 14) + " 公里。</p><p>铁块已经攒了一些。若是材料够，明天可以把载具往上推一截。</p>",
-      choices: [{ text: "迎来第三天", primary: true, next: "day3" }]
-    };
-  };
-
-  SCENES.day3 = function () {
-    var can = state.iron >= 6;
-    return {
-      onEnter: function () { state.day = 3; },
-      art: '<div class="emoji">🔧</div><div class="caption">第三天</div>',
-      system: "第三天行驶任务：50 公里。\n检测到来自载具的升级条件：" + (can ? "材料足够，可升至 2 级（消耗铁块 6）。" : "铁块不足，尚不能升级。"),
-      text: can
-        ? "<p>面板跳出提示。李峥摸了摸那些铁块。升级之后会更省油，也会更快——在怪物还没有贴上尾灯之前，这是最划算的一步。</p>"
-        : "<p>铁块还不够。李峥看了一眼面板，把这件事按下，先把今天的路跑完。</p>",
-      choices: can
-        ? [
-            { text: "升级载具至 2 级", hint: "消耗铁块 6，更省油、更快", next: "upgrade" },
-            { text: "先不升，把铁留着赶路", next: "day3_road" }
-          ]
-        : [{ text: "先赶路", primary: true, next: "day3_road" }]
-    };
-  };
-
-  SCENES.upgrade = {
-    onEnter: function () {
-      if (state.vehicleLevel >= 2) return;
-      add("iron", -6);
-      state.vehicleLevel = 2;
-      add("fuel", 4);
-    },
-    art: '<div class="emoji">✨</div><div class="caption">载具升级</div>',
-    system: "载具升至 2 级。油耗下降，时速提升，电量/燃油得到部分补充。\n是否将此项成就进行全区公告？",
-    text: '<p>升级很快。车身一阵发烫，随即稳下来。车斗更宽，坐着也不再那么硌。李峥试了试油门——同一段路，明显轻了。</p>',
-    loot: "<strong>升级完成</strong>铁块 -6<br>燃油 +4<br>油耗改善，每日可行驶距离 +20 公里",
-    choices: [
-      { text: "全区公告", hint: "额外奖励，同时更加显眼", effect: function () { state.flags.announcedUpgrade = true; add("hp", 15); }, next: "upgrade_after" },
-      { text: "暂不公告", effect: function () { state.flags.announcedUpgrade = false; }, next: "upgrade_after" }
-    ]
-  };
-
-  SCENES.upgrade_after = function () {
-    return {
-      art: '<div class="emoji">' + (veh() ? veh().icon : "🔧") + '</div>',
-      banner: state.flags.announcedUpgrade ? "全区播报：生存者独孤求败完成载具 2 级升级！" : "",
-      text: state.flags.announcedUpgrade
-        ? "<p>公告再一次砸进频道。系统额外给了一瓶红色药剂，伤口和疲劳跟着消退了一截。李峥把空瓶扔进车斗，继续往前开。</p>"
-        : "<p>他没有公告。先把速度用在路上，比把名字再亮一次更重要。</p>",
-      choices: [{ text: "第三天的路，继续向前", primary: true, next: "day3_road" }]
-    };
-  };
-
-  SCENES.day3_road = function () {
-    var run = state.flags._d3 || { actual: 0, stalled: false, spent: 0 };
-    var body = run.stalled
-      ? "<p>第三天，油还是没撑住。车停下来的时候，后方的影子已经能看清轮廓了——它不高，可嘴很大。</p>"
-      : "<p>第三天向前开了 " + run.actual + " 公里，耗油 " + run.spent + "。怪物还在后面，但暂时没有贴上来。</p><p>就在这时，频道和路边同时有了动静。</p>";
-    return {
-      onEnter: function () {
-        state.day = 3;
-        state.flags._d3 = drive(dayKm());
-      },
-      art: run.stalled ? '<div class="emoji">⛽</div><div class="caption">燃油耗尽</div>' : '<div class="emoji">🛣</div><div class="caption">第三天的路</div>',
-      text: body,
-      choices: run.stalled
-        ? [{ text: "只能下车想办法", primary: true, next: "stalled" }]
-        : [{ text: "看看是什么情况", primary: true, next: "day3_event" }]
-    };
-  };
-
-  SCENES.day3_event = function () {
-    if (state.flags.bossTrade) {
-      return {
-        onEnter: function () { add("fuel", 4); add("iron", 2); },
-        art: '<div class="emoji">📦</div><div class="caption">私聊</div>',
-        chat: [
-          { who: "矮胖老板", text: "独孤求败，前方护栏后还有一只小铁箱，我开不动了，坐标发给你。这笔买卖，我认了。" }
-        ],
-        text: "<p>李峥依言找过去，还真有一只被人慌乱丢下的小箱。燃油和铁块都在。他没有回谢。</p>",
-        loot: "<strong>获得物资</strong>燃油 ×4<br>铁块 ×2",
-        choices: [{ text: "收好，做最后一段路", primary: true, next: "finale" }]
-      };
-    }
-    if (state.flags.bossGift) {
-      return {
-        onEnter: function () { add("fuel", 5); },
-        art: '<div class="emoji">⛽</div><div class="caption">还人情</div>',
-        chat: [
-          { who: "矮胖老板", text: "昨天那份油救了我。我不是白眼狼——这是我匀得出来的全部。你先用。" }
-        ],
-        text: "<p>一份燃油隔空到账。李峥看着面板，没说「不用谢」，只回了一个字：收到。</p>",
-        loot: "<strong>获得物资</strong>燃油 ×5",
-        choices: [{ text: "继续向前", primary: true, next: "finale" }]
-      };
-    }
-    if (state.flags.announcedKill) {
-      return {
-        art: '<div class="emoji">⚔️</div><div class="caption">有人拦路</div>',
-        text: "<p>一辆破车斜着停在路中，两个人跳下来挥手，脸上是笑，手里是棍。「首杀大佬，匀点油，大家都是出来混的。」</p><p>李峥没有减速的意思。这一世，他不打算再给这种人开口的第二次机会。</p>",
-        choices: [
-          { text: "硬冲过去，菜刀招呼敢拦车的人", hint: "生命 -12，可能搜到一点油", effect: function () { add("hp", -12); add("fuel", 3); state.flags.robbery = "fight"; }, next: "finale" },
-          { text: "绕开，多耗一点油甩掉他们", hint: "燃油 -3", effect: function () { add("fuel", -3); state.flags.robbery = "flee"; }, next: "finale" }
-        ]
-      };
-    }
-    return {
-      art: '<div class="emoji">🛣</div>',
-      text: "<p>频道里矮胖老板还在骂街，但没有再找上门。公路空旷，只有风和轮胎声。李峥把速度稳住，不贪这一时的冲刺。</p>",
-      choices: [{ text: "做最后一段路", primary: true, next: "finale" }]
-    };
-  };
-
-  SCENES.finale = function () {
-    var ok = state.hp > 0 && state.monsterGap > 0;
-    return {
-      art: '<div class="emoji">🌄</div><div class="caption">天色将亮</div>',
-      text: ok
-        ? "<p>第三天的路跑完时，天边裂开一条灰白。李峥把车停在路肩，听了很久。后方的咀嚼声还在，可已经咬不到这辆车的尾灯。</p><p>公路仍旧没有尽头。他把菜刀擦净，重新放回手边。这只是开始。</p>"
-        : "<p>他还想再往前开一段。可身体或油表，已经先一步给出了答案。</p>",
-      choices: ok
-        ? [{ text: "查看本日结算", primary: true, next: "win" }]
-        : [{ text: "……", primary: true, next: deathTarget() || "dead_monster" }]
-    };
-  };
-
-  SCENES.win = function () {
-    var r = calcRank();
-    state.flags.rank = r.rank;
-    state.flags.score = r.score;
-    var v = veh();
-    return {
-      art: '<div class="emoji">🏆</div><div class="caption">E66 分区 · 临时榜</div>',
-      extra: '<div class="ending"><h2>第一章完 · 未完待续</h2><p style="color:#9a9388;font-size:14px;">你活过了开局三天。公路的尽头，还在很远的地方。</p>' +
-        rankBoard(r.rank) +
-        '<div class="stats">结算：行驶 ' + Math.round(state.distance) + " 公里　剩余燃油 " + state.fuel +
-        "　食物 " + state.food + "　铁块 " + state.iron + "　生命 " + state.hp +
-        "<br>载具：" + (v ? v.icon + " " + v.name + " " + state.vehicleLevel + " 级" : "无") +
-        "<br>综合评分 " + r.score + "　当前名次：第 " + r.rank + " 名</div></div>",
-      choices: [
-        { text: "再玩一次", primary: true, effect: function () { restart(true); }, next: null },
-        { text: "回到标题", ghost: true, effect: function () { save(); goto("title"); }, next: null }
-      ]
-    };
-  };
-
-  SCENES.stalled = function () {
-    var help = state.flags.bossGift && state.fuel === 0;
-    return {
-      art: '<div class="emoji">☠️</div><div class="caption">车停了</div>',
-      text: help
-        ? "<p>车停在路中央。就在李峥准备放弃的时候，一份微弱的燃油到账——矮胖老板的消息紧跟着弹出来：「先用着，我说过我不是白眼狼。」</p>"
-        : "<p>燃油耗尽。车停在路中央，像一块等着被吞掉的铁。后方的咀嚼声由远及近，沥青在发抖。李峥握着菜刀下车，他知道这没用。</p>",
-      choices: help
-        ? [{ text: "把这点油灌进去，再跑一截", effect: function () { add("fuel", 4); }, next: "finale" }]
-        : [
-            { text: "放弃载具，向前跑", hint: "生命会大减，怪物会迅速靠近", effect: function () { add("hp", -40); state.monsterGap -= 40; }, next: "finale" },
-            { text: "留在车里等", hint: "几乎等于把后背交给它", effect: function () { state.monsterGap = 0; state.dead = "fuel"; }, next: "dead_fuel" }
-          ]
-    };
-  };
-
-  SCENES.dead_hp = {
-    art: '<div class="emoji">💔</div><div class="caption">生命归零</div>',
-    text: '<p>视野先从边缘黑掉。菜刀还在手里，可手指已经没有力气。李峥听见自己的呼吸断了一截。</p><p>对李峥来说，这不是第一次死亡。但这一世，本可以不同。</p>',
-    system: "生存者李峥已死亡。背包将随死亡消失。",
-    choices: [
-      { text: "重新开始", primary: true, effect: function () { restart(true); }, next: null }
-    ]
-  };
-
-  SCENES.dead_monster = {
-    art: '<div class="emoji">👾</div><div class="caption">被追上</div>',
-    text: '<p>后视镜里的影子忽然就到了保险杠后面。它不高，嘴却张得很大，热气和腥味一起灌进车窗。李峥踩下油门，可已经没有用了。</p><p>公路还在向前。车上不再有人。</p>',
-    system: "生存者李峥已死亡。不要心存侥幸。",
-    choices: [
-      { text: "重新开始", primary: true, effect: function () { restart(true); }, next: null }
-    ]
-  };
-
-  SCENES.dead_fuel = {
-    art: '<div class="emoji">⛽</div><div class="caption">无油可逃</div>',
-    text: '<p>油表归零的声音比想象中更轻。车停了，世界却没有停。咀嚼声先是远，再是近，最后贴上了铁皮。</p><p>前世为了买油死在路上的人，他见过很多。这一次，轮到他自己。</p>',
-    system: "生存者李峥已死亡。燃油耗尽，被食肉怪物追上。",
-    choices: [
-      { text: "重新开始", primary: true, effect: function () { restart(true); }, next: null }
-    ]
-  };
-
-  /* ---------- 绑定 ---------- */
-  els.restart.addEventListener("click", function () { restart(false); });
-  els.btnPanel.addEventListener("click", openPanel);
-  els.btnClose.addEventListener("click", function () { els.modal.classList.remove("show"); });
-  els.modal.addEventListener("click", function (e) { if (e.target === els.modal) els.modal.classList.remove("show"); });
-
-  window.GongluGame = {
-    getState: function () { return state; },
-    getScene: function () { return state.scene; },
-    goto: goto,
-    choose: choose,
-    restart: function () { restart(true); },
-    start: startNew,
-    load: continueGame,
-    hasSave: hasSave,
-    VEHICLES: VEHICLES
-  };
-
-  if (TEST) window.__GONGLU_TEST = true;
-  goto("title");
+// ---------- 主循环 ----------
+buildAssets();resize();titleScene();joyHome();
+var last=performance.now();
+function frame(now){
+  var dt=Math.min(0.05,Math.max(0,(now-last)/1000));last=now;
+  try{update(dt);render();updateUI(dt);}catch(err){console.error(err);}
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.__G=function(){return G;};
+window.__api={start:startGame,interact:interact,toggleCar:toggleCar,attack:attack,upgrade:upgrade};
 })();
-  </script>
+</script>
 </body>
 </html>
